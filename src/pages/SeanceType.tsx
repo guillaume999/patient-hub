@@ -1,19 +1,451 @@
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Plus, Heart, MessageCircle, Trash2, Video, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
+
+interface SeanceType {
+  id: string;
+  pathologie: string;
+  objectif_principal: string;
+  objectif_secondaire: string | null;
+  created_at: string;
+  exercices?: SeanceExercice[];
+  likes_count?: number;
+  comments_count?: number;
+  user_liked?: boolean;
+}
+
+interface SeanceExercice {
+  id: string;
+  video_id: string | null;
+  ordre: number;
+  description: string | null;
+  video?: {
+    id: string;
+    title: string;
+    thumbnail_url: string | null;
+  };
+}
+
+interface VideoOption {
+  id: string;
+  title: string;
+  thumbnail_url: string | null;
+}
 
 export default function SeanceType() {
+  const { user } = useAuth();
+  const [seances, setSeances] = useState<SeanceType[]>([]);
+  const [pathologies, setPathologies] = useState<string[]>([]);
+  const [objectifs, setObjectifs] = useState<{ principal: string[]; secondaire: string[] }>({ principal: [], secondaire: [] });
+  const [videos, setVideos] = useState<VideoOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [selectedSeance, setSelectedSeance] = useState<SeanceType | null>(null);
+  const [comments, setComments] = useState<{ id: string; content: string; created_at: string }[]>([]);
+  const [newComment, setNewComment] = useState("");
+
+  const [formData, setFormData] = useState({
+    pathologie: "",
+    newPathologie: "",
+    objectif_principal: "",
+    newObjectifPrincipal: "",
+    objectif_secondaire: "",
+    newObjectifSecondaire: "",
+    exercices: [] as { video_id: string; description: string }[]
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch seance types
+      const { data: seancesData, error: seancesError } = await supabase
+        .from("seance_types")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (seancesError) throw seancesError;
+
+      // Fetch exercices for each seance
+      const seancesWithDetails = await Promise.all(
+        (seancesData || []).map(async (seance) => {
+          const { data: exercicesData } = await supabase
+            .from("seance_exercices")
+            .select("*, videos(id, title, thumbnail_url)")
+            .eq("seance_type_id", seance.id)
+            .order("ordre");
+
+          const { count: likesCount } = await supabase
+            .from("seance_likes")
+            .select("*", { count: "exact", head: true })
+            .eq("seance_type_id", seance.id);
+
+          const { count: commentsCount } = await supabase
+            .from("seance_comments")
+            .select("*", { count: "exact", head: true })
+            .eq("seance_type_id", seance.id);
+
+          const { data: userLike } = await supabase
+            .from("seance_likes")
+            .select("id")
+            .eq("seance_type_id", seance.id)
+            .eq("user_id", user?.id)
+            .maybeSingle();
+
+          return {
+            ...seance,
+            exercices: exercicesData?.map((ex) => ({
+              ...ex,
+              video: ex.videos
+            })) || [],
+            likes_count: likesCount || 0,
+            comments_count: commentsCount || 0,
+            user_liked: !!userLike
+          };
+        })
+      );
+
+      setSeances(seancesWithDetails);
+
+      // Fetch pathologies
+      const { data: pathoData } = await supabase
+        .from("pathologies")
+        .select("name");
+      setPathologies([...new Set(pathoData?.map((p) => p.name) || [])]);
+
+      // Fetch objectifs
+      const { data: objData } = await supabase
+        .from("objectifs")
+        .select("name, type");
+      setObjectifs({
+        principal: [...new Set(objData?.filter((o) => o.type === "principal").map((o) => o.name) || [])],
+        secondaire: [...new Set(objData?.filter((o) => o.type === "secondaire").map((o) => o.name) || [])]
+      });
+
+      // Fetch videos
+      const { data: videosData } = await supabase
+        .from("videos")
+        .select("id, title, thumbnail_url");
+      setVideos(videosData || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Erreur lors du chargement des données");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!user) return;
+
+    const pathologie = formData.newPathologie || formData.pathologie;
+    const objectif_principal = formData.newObjectifPrincipal || formData.objectif_principal;
+    const objectif_secondaire = formData.newObjectifSecondaire || formData.objectif_secondaire;
+
+    if (!pathologie || !objectif_principal) {
+      toast.error("Pathologie et objectif principal requis");
+      return;
+    }
+
+    try {
+      // Create seance type
+      const { data: seanceData, error: seanceError } = await supabase
+        .from("seance_types")
+        .insert({
+          user_id: user.id,
+          pathologie,
+          objectif_principal,
+          objectif_secondaire: objectif_secondaire || null
+        })
+        .select()
+        .single();
+
+      if (seanceError) throw seanceError;
+
+      // Save new pathologie if created
+      if (formData.newPathologie) {
+        await supabase.from("pathologies").insert({ user_id: user.id, name: formData.newPathologie });
+      }
+
+      // Save new objectifs if created
+      if (formData.newObjectifPrincipal) {
+        await supabase.from("objectifs").insert({ user_id: user.id, name: formData.newObjectifPrincipal, type: "principal" });
+      }
+      if (formData.newObjectifSecondaire) {
+        await supabase.from("objectifs").insert({ user_id: user.id, name: formData.newObjectifSecondaire, type: "secondaire" });
+      }
+
+      // Create exercices
+      for (let i = 0; i < formData.exercices.length; i++) {
+        const ex = formData.exercices[i];
+        await supabase.from("seance_exercices").insert({
+          seance_type_id: seanceData.id,
+          video_id: ex.video_id || null,
+          description: ex.description || null,
+          ordre: i
+        });
+      }
+
+      toast.success("Séance type créée avec succès");
+      setDialogOpen(false);
+      setFormData({
+        pathologie: "",
+        newPathologie: "",
+        objectif_principal: "",
+        newObjectifPrincipal: "",
+        objectif_secondaire: "",
+        newObjectifSecondaire: "",
+        exercices: []
+      });
+      fetchData();
+    } catch (error) {
+      console.error("Error creating seance:", error);
+      toast.error("Erreur lors de la création");
+    }
+  };
+
+  const handleLike = async (seanceId: string, currentlyLiked: boolean) => {
+    if (!user) return;
+
+    try {
+      if (currentlyLiked) {
+        await supabase
+          .from("seance_likes")
+          .delete()
+          .eq("seance_type_id", seanceId)
+          .eq("user_id", user.id);
+      } else {
+        await supabase
+          .from("seance_likes")
+          .insert({ seance_type_id: seanceId, user_id: user.id });
+      }
+      fetchData();
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  };
+
+  const openComments = async (seance: SeanceType) => {
+    setSelectedSeance(seance);
+    const { data } = await supabase
+      .from("seance_comments")
+      .select("id, content, created_at")
+      .eq("seance_type_id", seance.id)
+      .order("created_at", { ascending: false });
+    setComments(data || []);
+    setCommentsDialogOpen(true);
+  };
+
+  const addComment = async () => {
+    if (!user || !selectedSeance || !newComment.trim()) return;
+
+    try {
+      await supabase.from("seance_comments").insert({
+        seance_type_id: selectedSeance.id,
+        user_id: user.id,
+        content: newComment.trim()
+      });
+      setNewComment("");
+      openComments(selectedSeance);
+      fetchData();
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+
+  const deleteSeance = async (id: string) => {
+    try {
+      await supabase.from("seance_types").delete().eq("id", id);
+      toast.success("Séance supprimée");
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting seance:", error);
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const addExercice = () => {
+    setFormData({
+      ...formData,
+      exercices: [...formData.exercices, { video_id: "", description: "" }]
+    });
+  };
+
+  const removeExercice = (index: number) => {
+    setFormData({
+      ...formData,
+      exercices: formData.exercices.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateExercice = (index: number, field: string, value: string) => {
+    const updated = [...formData.exercices];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, exercices: updated });
+  };
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-muted-foreground">Connectez-vous pour accéder à cette page.</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-3 rounded-xl bg-indigo-500/10">
-            <Calendar className="w-8 h-8 text-indigo-500" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-indigo-500/10">
+              <Calendar className="w-8 h-8 text-indigo-500" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-display font-bold">Séance Type</h1>
+              <p className="text-muted-foreground">Gérez vos modèles de séances prédéfinies</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-display font-bold">Séance Type</h1>
-            <p className="text-muted-foreground">Gérez vos modèles de séances prédéfinies</p>
-          </div>
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nouvelle séance
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Créer une séance type</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {/* Pathologie */}
+                <div className="space-y-2">
+                  <Label>Pathologie</Label>
+                  <Select value={formData.pathologie} onValueChange={(v) => setFormData({ ...formData, pathologie: v, newPathologie: "" })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner ou créer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pathologies.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                      <SelectItem value="__new__">+ Créer nouveau</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.pathologie === "__new__" && (
+                    <Input
+                      placeholder="Nouvelle pathologie"
+                      value={formData.newPathologie}
+                      onChange={(e) => setFormData({ ...formData, newPathologie: e.target.value })}
+                    />
+                  )}
+                </div>
+
+                {/* Objectif Principal */}
+                <div className="space-y-2">
+                  <Label>Objectif Principal</Label>
+                  <Select value={formData.objectif_principal} onValueChange={(v) => setFormData({ ...formData, objectif_principal: v, newObjectifPrincipal: "" })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner ou créer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {objectifs.principal.map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                      <SelectItem value="__new__">+ Créer nouveau</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.objectif_principal === "__new__" && (
+                    <Input
+                      placeholder="Nouvel objectif principal"
+                      value={formData.newObjectifPrincipal}
+                      onChange={(e) => setFormData({ ...formData, newObjectifPrincipal: e.target.value })}
+                    />
+                  )}
+                </div>
+
+                {/* Objectif Secondaire */}
+                <div className="space-y-2">
+                  <Label>Objectif Secondaire (optionnel)</Label>
+                  <Select value={formData.objectif_secondaire} onValueChange={(v) => setFormData({ ...formData, objectif_secondaire: v, newObjectifSecondaire: "" })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner ou créer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {objectifs.secondaire.map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                      <SelectItem value="__new__">+ Créer nouveau</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.objectif_secondaire === "__new__" && (
+                    <Input
+                      placeholder="Nouvel objectif secondaire"
+                      value={formData.newObjectifSecondaire}
+                      onChange={(e) => setFormData({ ...formData, newObjectifSecondaire: e.target.value })}
+                    />
+                  )}
+                </div>
+
+                {/* Exercices */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Exercices</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addExercice}>
+                      <Plus className="w-4 h-4 mr-1" /> Ajouter
+                    </Button>
+                  </div>
+                  {formData.exercices.map((ex, index) => (
+                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Exercice {index + 1}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeExercice(index)}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <Select value={ex.video_id} onValueChange={(v) => updateExercice(index, "video_id", v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une vidéo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {videos.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>{v.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Textarea
+                        placeholder="Description / commentaires"
+                        value={ex.description}
+                        onChange={(e) => updateExercice(index, "description", e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <Button onClick={handleSubmit} className="w-full">Créer la séance</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -21,11 +453,139 @@ export default function SeanceType() {
             <CardTitle>Modèles de séances</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              Cette section vous permettra de créer et gérer vos séances types.
-            </p>
+            {loading ? (
+              <p className="text-muted-foreground">Chargement...</p>
+            ) : seances.length === 0 ? (
+              <p className="text-muted-foreground">Aucune séance type créée.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pathologie</TableHead>
+                    <TableHead>Objectif Principal</TableHead>
+                    <TableHead>Objectif Secondaire</TableHead>
+                    <TableHead>Exercices</TableHead>
+                    <TableHead>Interactions</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {seances.map((seance) => (
+                    <TableRow key={seance.id}>
+                      <TableCell>
+                        <Badge variant="outline">{seance.pathologie}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{seance.objectif_principal}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {seance.objectif_secondaire ? (
+                          <Badge variant="outline">{seance.objectif_secondaire}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-2 max-w-xs">
+                          {seance.exercices?.map((ex, i) => (
+                            <div key={ex.id} className="flex items-start gap-2 text-sm">
+                              {ex.video?.thumbnail_url ? (
+                                <img
+                                  src={ex.video.thumbnail_url}
+                                  alt={ex.video.title}
+                                  className="w-12 h-8 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-12 h-8 bg-muted rounded flex items-center justify-center">
+                                  <Video className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{ex.video?.title || `Exercice ${i + 1}`}</p>
+                                {ex.description && (
+                                  <p className="text-muted-foreground text-xs truncate">{ex.description}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {(!seance.exercices || seance.exercices.length === 0) && (
+                            <span className="text-muted-foreground text-sm">Aucun exercice</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`gap-1 ${seance.user_liked ? "text-red-500" : ""}`}
+                            onClick={() => handleLike(seance.id, seance.user_liked || false)}
+                          >
+                            <Heart className={`w-4 h-4 ${seance.user_liked ? "fill-current" : ""}`} />
+                            {seance.likes_count}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => openComments(seance)}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            {seance.comments_count}
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => deleteSeance(seance.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
+
+        {/* Comments Dialog */}
+        <Dialog open={commentsDialogOpen} onOpenChange={setCommentsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Commentaires</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ajouter un commentaire..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addComment()}
+                />
+                <Button onClick={addComment}>Envoyer</Button>
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {comments.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">Aucun commentaire</p>
+                ) : (
+                  comments.map((c) => (
+                    <div key={c.id} className="p-2 bg-muted rounded-lg">
+                      <p className="text-sm">{c.content}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(c.created_at).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
