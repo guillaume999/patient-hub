@@ -1,11 +1,13 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { LogOut, User, Menu, X } from "lucide-react";
+import { useAdmin } from "@/hooks/useAdmin";
+import { LogOut, User, Menu, X, Shield } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -72,6 +74,17 @@ export function Navbar() {
                 >
                   Notes
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className={`font-medium transition-colors hover:text-primary flex items-center gap-1 ${
+                      isActive("/admin") ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Admin
+                  </Link>
+                )}
               </>
             )}
           </div>
@@ -155,6 +168,16 @@ export function Navbar() {
                   >
                     Notes
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Shield className="w-4 h-4" />
+                      Admin
+                    </Link>
+                  )}
                 </>
               )}
               {user ? (
