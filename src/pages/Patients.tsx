@@ -56,7 +56,7 @@ export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("in_treatment");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ 
     first_name: "", 
