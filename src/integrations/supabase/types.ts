@@ -132,6 +132,51 @@ export type Database = {
           },
         ]
       }
+      objectifs: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pathologies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           address: string | null
@@ -229,6 +274,139 @@ export type Database = {
           id?: string
           last_name?: string | null
           specialty?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      seance_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          seance_type_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          seance_type_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          seance_type_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seance_comments_seance_type_id_fkey"
+            columns: ["seance_type_id"]
+            isOneToOne: false
+            referencedRelation: "seance_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seance_exercices: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          ordre: number
+          seance_type_id: string
+          video_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          ordre?: number
+          seance_type_id: string
+          video_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          ordre?: number
+          seance_type_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seance_exercices_seance_type_id_fkey"
+            columns: ["seance_type_id"]
+            isOneToOne: false
+            referencedRelation: "seance_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seance_exercices_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seance_likes: {
+        Row: {
+          created_at: string
+          id: string
+          seance_type_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          seance_type_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          seance_type_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seance_likes_seance_type_id_fkey"
+            columns: ["seance_type_id"]
+            isOneToOne: false
+            referencedRelation: "seance_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seance_types: {
+        Row: {
+          created_at: string
+          id: string
+          objectif_principal: string
+          objectif_secondaire: string | null
+          pathologie: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          objectif_principal: string
+          objectif_secondaire?: string | null
+          pathologie: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          objectif_principal?: string
+          objectif_secondaire?: string | null
+          pathologie?: string
           updated_at?: string
           user_id?: string
         }
