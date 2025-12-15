@@ -79,6 +79,17 @@ export default function Profile() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validation for reserved pseudo
+    if (pseudo && pseudo.toLowerCase() === "admin") {
+      toast({
+        title: "Pseudo non autorisé",
+        description: "Le pseudo 'admin' est réservé et ne peut pas être utilisé",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSaving(true);
 
     try {
@@ -88,14 +99,26 @@ export default function Profile() {
           first_name: firstName,
           last_name: lastName,
           specialty: specialty,
-          pseudo: pseudo,
+          pseudo: pseudo || null,
         })
         .eq("user_id", user!.id);
 
       if (error) {
+        let errorMessage = "Impossible de mettre à jour le profil";
+        
+        if (error.code === "23505") {
+          if (error.message.includes("idx_profiles_pseudo_unique")) {
+            errorMessage = "Ce pseudo est déjà utilisé par un autre utilisateur";
+          } else if (error.message.includes("idx_profiles_email_unique")) {
+            errorMessage = "Cet email est déjà utilisé par un autre utilisateur";
+          }
+        } else if (error.message.includes("admin")) {
+          errorMessage = "Le pseudo 'admin' est réservé et ne peut pas être utilisé";
+        }
+        
         toast({
           title: "Erreur",
-          description: "Impossible de mettre à jour le profil",
+          description: errorMessage,
           variant: "destructive",
         });
       } else {
