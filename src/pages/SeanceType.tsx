@@ -112,6 +112,14 @@ export default function SeanceType() {
   const applyFilters = () => {
     let result = [...seances];
 
+    // Get IDs of originals that the user has copied
+    const userCopiedOriginalIds = seances
+      .filter((s) => s.is_copy && s.user_id === user?.id && s.original_id)
+      .map((s) => s.original_id);
+
+    // Filter out originals that user has already copied
+    result = result.filter((s) => !userCopiedOriginalIds.includes(s.id));
+
     // Apply filter type
     if (filter === "mine") {
       result = result.filter((s) => s.user_id === user?.id);
