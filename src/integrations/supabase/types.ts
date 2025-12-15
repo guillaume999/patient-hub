@@ -281,6 +281,7 @@ export type Database = {
           id: string
           is_premium: boolean | null
           last_name: string | null
+          pseudo: string | null
           specialty: string | null
           trial_end_date: string | null
           updated_at: string
@@ -294,6 +295,7 @@ export type Database = {
           id?: string
           is_premium?: boolean | null
           last_name?: string | null
+          pseudo?: string | null
           specialty?: string | null
           trial_end_date?: string | null
           updated_at?: string
@@ -307,6 +309,7 @@ export type Database = {
           id?: string
           is_premium?: boolean | null
           last_name?: string | null
+          pseudo?: string | null
           specialty?: string | null
           trial_end_date?: string | null
           updated_at?: string

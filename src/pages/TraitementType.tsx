@@ -69,6 +69,7 @@ type FilterType = "all" | "mine" | "shared";
 
 export default function TraitementType() {
   const { user } = useAuth();
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [traitements, setTraitements] = useState<TraitementType[]>([]);
   const [filteredTraitements, setFilteredTraitements] = useState<TraitementType[]>([]);
   const [pathologies, setPathologies] = useState<string[]>([]);
@@ -85,7 +86,6 @@ export default function TraitementType() {
   const [formData, setFormData] = useState({
     pathologie: "",
     newPathologie: "",
-    author_name: "",
     tests: [] as { description: string; video_id: string }[],
     seances: [] as string[]
   });
@@ -124,6 +124,15 @@ export default function TraitementType() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch user pseudo
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("pseudo")
+        .eq("user_id", user!.id)
+        .single();
+      
+      setUserPseudo(profileData?.pseudo || null);
+
       const { data: traitementsData, error: traitementsError } = await supabase
         .from("traitement_types")
         .select("*")
@@ -197,7 +206,7 @@ export default function TraitementType() {
         .insert({
           user_id: user.id,
           pathologie,
-          author_name: formData.author_name || null,
+          author_name: userPseudo,
           is_shared: false
         })
         .select()
@@ -232,7 +241,6 @@ export default function TraitementType() {
       setFormData({
         pathologie: "",
         newPathologie: "",
-        author_name: "",
         tests: [],
         seances: []
       });
@@ -391,14 +399,11 @@ export default function TraitementType() {
                 <DialogTitle>Créer un traitement type</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nom de l'auteur</Label>
-                  <Input
-                    placeholder="Votre nom"
-                    value={formData.author_name}
-                    onChange={(e) => setFormData({ ...formData, author_name: e.target.value })}
-                  />
-                </div>
+                {userPseudo ? (
+                  <p className="text-sm text-muted-foreground">Auteur: <span className="font-medium text-foreground">{userPseudo}</span></p>
+                ) : (
+                  <p className="text-sm text-amber-600">Définissez votre pseudo dans votre profil pour qu'il apparaisse comme auteur</p>
+                )}
 
                 <div className="space-y-2">
                   <Label>Pathologie</Label>
