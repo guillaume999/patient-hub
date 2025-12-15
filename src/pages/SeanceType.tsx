@@ -54,6 +54,7 @@ type FilterType = "all" | "mine" | "shared";
 
 export default function SeanceType() {
   const { user } = useAuth();
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [seances, setSeances] = useState<SeanceType[]>([]);
   const [filteredSeances, setFilteredSeances] = useState<SeanceType[]>([]);
   const [pathologies, setPathologies] = useState<string[]>([]);
@@ -77,7 +78,6 @@ export default function SeanceType() {
     newObjectifPrincipal: "",
     objectif_secondaire: "",
     newObjectifSecondaire: "",
-    author_name: "",
     exercices: [] as { video_id: string; description: string }[]
   });
 
@@ -118,6 +118,15 @@ export default function SeanceType() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch user pseudo
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("pseudo")
+        .eq("user_id", user!.id)
+        .single();
+      
+      setUserPseudo(profileData?.pseudo || null);
+
       // Fetch seance types
       const { data: seancesData, error: seancesError } = await supabase
         .from("seance_types")
@@ -216,7 +225,7 @@ export default function SeanceType() {
           pathologie,
           objectif_principal,
           objectif_secondaire: objectif_secondaire || null,
-          author_name: formData.author_name || null,
+          author_name: userPseudo,
           is_shared: false
         })
         .select()
@@ -257,7 +266,6 @@ export default function SeanceType() {
         newObjectifPrincipal: "",
         objectif_secondaire: "",
         newObjectifSecondaire: "",
-        author_name: "",
         exercices: []
       });
       fetchData();
@@ -443,15 +451,11 @@ export default function SeanceType() {
                 <DialogTitle>Créer une séance type</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                {/* Author Name */}
-                <div className="space-y-2">
-                  <Label>Nom de l'auteur</Label>
-                  <Input
-                    placeholder="Votre nom"
-                    value={formData.author_name}
-                    onChange={(e) => setFormData({ ...formData, author_name: e.target.value })}
-                  />
-                </div>
+                {userPseudo ? (
+                  <p className="text-sm text-muted-foreground">Auteur: <span className="font-medium text-foreground">{userPseudo}</span></p>
+                ) : (
+                  <p className="text-sm text-amber-600">Définissez votre pseudo dans votre profil pour qu'il apparaisse comme auteur</p>
+                )}
 
                 {/* Pathologie */}
                 <div className="space-y-2">

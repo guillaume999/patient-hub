@@ -18,6 +18,7 @@ interface Profile {
   last_name: string | null;
   email: string | null;
   specialty: string | null;
+  pseudo: string | null;
 }
 
 export default function Profile() {
@@ -32,6 +33,7 @@ export default function Profile() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [specialty, setSpecialty] = useState("");
+  const [pseudo, setPseudo] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -55,7 +57,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, email, specialty")
+        .select("first_name, last_name, email, specialty, pseudo")
         .eq("user_id", user!.id)
         .single();
 
@@ -68,6 +70,7 @@ export default function Profile() {
         setFirstName(data.first_name || "");
         setLastName(data.last_name || "");
         setSpecialty(data.specialty || "");
+        setPseudo(data.pseudo || "");
       }
     } finally {
       setLoading(false);
@@ -85,6 +88,7 @@ export default function Profile() {
           first_name: firstName,
           last_name: lastName,
           specialty: specialty,
+          pseudo: pseudo,
         })
         .eq("user_id", user!.id);
 
@@ -204,6 +208,17 @@ export default function Profile() {
                       placeholder="Dupont"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pseudo">Pseudo (affiché comme auteur)</Label>
+                  <Input
+                    id="pseudo"
+                    value={pseudo}
+                    onChange={(e) => setPseudo(e.target.value)}
+                    placeholder="MonPseudo"
+                  />
+                  <p className="text-xs text-muted-foreground">Ce pseudo sera utilisé comme nom d'auteur pour vos séances et traitements partagés</p>
                 </div>
 
                 <div className="space-y-2">
