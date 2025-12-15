@@ -105,6 +105,14 @@ export default function TraitementType() {
   const applyFilters = () => {
     let result = [...traitements];
 
+    // Get IDs of originals that the user has copied
+    const userCopiedOriginalIds = traitements
+      .filter((t) => t.is_copy && t.user_id === user?.id && t.original_id)
+      .map((t) => t.original_id);
+
+    // Filter out originals that user has already copied
+    result = result.filter((t) => !userCopiedOriginalIds.includes(t.id));
+
     if (filter === "mine") {
       result = result.filter((t) => t.user_id === user?.id);
     } else if (filter === "shared") {
