@@ -59,6 +59,22 @@ export function Navbar() {
                   Vidéos
                 </Link>
                 <Link
+                  to="/seance-type"
+                  className={`font-medium transition-colors hover:text-primary ${
+                    isActive("/seance-type") ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  Séance
+                </Link>
+                <Link
+                  to="/traitement-type"
+                  className={`font-medium transition-colors hover:text-primary ${
+                    isActive("/traitement-type") ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  TTT
+                </Link>
+                <Link
                   to="/ia-diagnostic"
                   className={`font-medium transition-colors hover:text-primary ${
                     isActive("/ia-diagnostic") ? "text-primary" : "text-muted-foreground"
@@ -153,6 +169,20 @@ export function Navbar() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Vidéos
+                  </Link>
+                  <Link
+                    to="/seance-type"
+                    className="font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Séance
+                  </Link>
+                  <Link
+                    to="/traitement-type"
+                    className="font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    TTT
                   </Link>
                   <Link
                     to="/ia-diagnostic"

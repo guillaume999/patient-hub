@@ -205,20 +205,20 @@ export default function Patients() {
             Tous ({patients.length})
           </Button>
           <Button
-            variant={statusFilter === "active" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setStatusFilter("active")}
-            className={statusFilter === "active" ? "" : "border-green-500/50 text-green-600 hover:bg-green-500/10"}
-          >
-            Actif ({patients.filter(p => p.status === "active").length})
-          </Button>
-          <Button
             variant={statusFilter === "in_treatment" ? "default" : "outline"}
             size="sm"
             onClick={() => setStatusFilter("in_treatment")}
             className={statusFilter === "in_treatment" ? "" : "border-blue-500/50 text-blue-600 hover:bg-blue-500/10"}
           >
             En traitement ({patients.filter(p => p.status === "in_treatment").length})
+          </Button>
+          <Button
+            variant={statusFilter === "active" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("active")}
+            className={statusFilter === "active" ? "" : "border-green-500/50 text-green-600 hover:bg-green-500/10"}
+          >
+            Actif ({patients.filter(p => p.status === "active").length})
           </Button>
           <Button
             variant={statusFilter === "waiting" ? "default" : "outline"}
