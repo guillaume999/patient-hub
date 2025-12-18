@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -179,147 +178,73 @@ export default function PatientDetail() {
           </div>
         </div>
 
-        <div className="grid gap-6">
-          {/* Informations générales */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Informations générales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Nom *</Label>
-                  <Input 
-                    value={formData.name || ""} 
-                    onChange={e => setFormData({...formData, name: e.target.value})} 
-                  />
-                </div>
-                <div>
-                  <Label>Numéro</Label>
-                  <Input value={patient.numero || "-"} disabled className="bg-muted" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Statut</Label>
-                  <Select value={formData.status || "active"} onValueChange={value => setFormData({...formData, status: value})}>
-                    <SelectTrigger>
-                      <SelectValue>{statusLabels[formData.status || "active"]}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Actif</SelectItem>
-                      <SelectItem value="in_treatment">En traitement</SelectItem>
-                      <SelectItem value="waiting">En attente</SelectItem>
-                      <SelectItem value="inactive">Inactif</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Groupe sanguin</Label>
-                  <Select value={formData.blood_type || ""} onValueChange={value => setFormData({...formData, blood_type: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Non renseigné" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="AB+">AB+</SelectItem>
-                      <SelectItem value="AB-">AB-</SelectItem>
-                      <SelectItem value="O+">O+</SelectItem>
-                      <SelectItem value="O-">O-</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Adresse */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Adresse</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Informations du patient</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Adresse</Label>
+                <Label>Nom *</Label>
                 <Input 
-                  value={formData.address || ""} 
-                  onChange={e => setFormData({...formData, address: e.target.value})} 
-                  placeholder="Rue, numéro..."
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Code postal</Label>
-                  <Input 
-                    value={formData.postal_code || ""} 
-                    onChange={e => setFormData({...formData, postal_code: e.target.value})} 
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Informations médicales */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Informations médicales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>N° Mutuelle</Label>
-                  <Input 
-                    value={formData.mutual_number || ""} 
-                    onChange={e => setFormData({...formData, mutual_number: e.target.value})} 
-                  />
-                </div>
-                <div>
-                  <Label>Séances restantes</Label>
-                  <Input 
-                    type="number" 
-                    min="0"
-                    value={formData.remaining_sessions ?? 0} 
-                    onChange={e => setFormData({...formData, remaining_sessions: parseInt(e.target.value) || 0})} 
-                  />
-                </div>
-                <div>
-                  <Label>Prescription</Label>
-                  <Select value={formData.prescription || "none"} onValueChange={value => setFormData({...formData, prescription: value})}>
-                    <SelectTrigger>
-                      <SelectValue>{prescriptionLabels[formData.prescription || "none"]}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="oui">Oui</SelectItem>
-                      <SelectItem value="none">Non</SelectItem>
-                      <SelectItem value="renouv_kine">Renouv. kiné</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label>Allergies</Label>
-                <Textarea 
-                  value={formData.allergies || ""} 
-                  onChange={e => setFormData({...formData, allergies: e.target.value})} 
-                  placeholder="Allergies connues..."
-                  rows={2}
+                  value={formData.name || ""} 
+                  onChange={e => setFormData({...formData, name: e.target.value})} 
                 />
               </div>
               <div>
-                <Label>Notes médicales</Label>
-                <Textarea 
-                  value={formData.medical_notes || ""} 
-                  onChange={e => setFormData({...formData, medical_notes: e.target.value})} 
-                  placeholder="Antécédents, remarques..."
-                  rows={4}
+                <Label>Numéro</Label>
+                <Input value={patient.numero || "-"} disabled className="bg-muted" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Statut</Label>
+                <Select value={formData.status || "active"} onValueChange={value => setFormData({...formData, status: value})}>
+                  <SelectTrigger>
+                    <SelectValue>{statusLabels[formData.status || "active"]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Actif</SelectItem>
+                    <SelectItem value="in_treatment">En traitement</SelectItem>
+                    <SelectItem value="waiting">En attente</SelectItem>
+                    <SelectItem value="inactive">Inactif</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>N° Mutuelle</Label>
+                <Input 
+                  value={formData.mutual_number || ""} 
+                  onChange={e => setFormData({...formData, mutual_number: e.target.value})} 
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Séances restantes</Label>
+                <Input 
+                  type="number" 
+                  min="0"
+                  value={formData.remaining_sessions ?? 0} 
+                  onChange={e => setFormData({...formData, remaining_sessions: parseInt(e.target.value) || 0})} 
+                />
+              </div>
+              <div>
+                <Label>Prescription</Label>
+                <Select value={formData.prescription || "none"} onValueChange={value => setFormData({...formData, prescription: value})}>
+                  <SelectTrigger>
+                    <SelectValue>{prescriptionLabels[formData.prescription || "none"]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="oui">Oui</SelectItem>
+                    <SelectItem value="none">Non</SelectItem>
+                    <SelectItem value="renouv_kine">Renouv. kiné</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
