@@ -710,13 +710,13 @@ export default function SeanceType() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Auteur</TableHead>
-                      <TableHead>Partagée</TableHead>
                       <TableHead>Pathologie</TableHead>
                       <TableHead>Objectif Principal</TableHead>
                       <TableHead>Objectif Secondaire</TableHead>
                       <TableHead>Exercices</TableHead>
                       <TableHead>Interactions</TableHead>
+                      <TableHead>Auteur</TableHead>
+                      <TableHead>Partagée</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -726,40 +726,6 @@ export default function SeanceType() {
                       const canShare = isOwner && !seance.is_copy;
                       return (
                       <TableRow key={seance.id}>
-                        <TableCell>
-                          <span className="font-medium">{seance.author_name || "Anonyme"}</span>
-                          {seance.is_copy && (
-                            <Badge variant="outline" className="ml-2 text-xs">Copie</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {canShare ? (
-                            <>
-                              <Checkbox
-                                checked={seance.is_shared}
-                                onCheckedChange={() => toggleShare(seance.id, seance.is_shared, seance.is_copy || false, seance.is_validated || false)}
-                                disabled={seance.is_validated && seance.is_shared}
-                              />
-                              {seance.is_shared && seance.is_validated && (
-                                <Badge className="ml-2 text-xs bg-green-500">Validé</Badge>
-                              )}
-                              {seance.is_shared && !seance.is_validated && (
-                                <Badge variant="secondary" className="ml-2 text-xs bg-orange-500">En attente</Badge>
-                              )}
-                            </>
-                          ) : isOwner && seance.is_copy ? (
-                            <span className="text-xs text-muted-foreground">Non partageable</span>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <Badge variant={seance.is_shared ? "default" : "outline"}>
-                                {seance.is_shared ? "Oui" : "Non"}
-                              </Badge>
-                              {seance.is_shared && seance.is_validated && (
-                                <Badge className="text-xs bg-green-500">Validé</Badge>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{seance.pathologie}</Badge>
                         </TableCell>
@@ -826,6 +792,40 @@ export default function SeanceType() {
                               {seance.comments_count}
                             </Button>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium">{seance.author_name || "Anonyme"}</span>
+                          {seance.is_copy && (
+                            <Badge variant="outline" className="ml-2 text-xs">Copie</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {canShare ? (
+                            <>
+                              <Checkbox
+                                checked={seance.is_shared}
+                                onCheckedChange={() => toggleShare(seance.id, seance.is_shared, seance.is_copy || false, seance.is_validated || false)}
+                                disabled={seance.is_validated && seance.is_shared}
+                              />
+                              {seance.is_shared && seance.is_validated && (
+                                <Badge className="ml-2 text-xs bg-green-500">Validé</Badge>
+                              )}
+                              {seance.is_shared && !seance.is_validated && (
+                                <Badge variant="secondary" className="ml-2 text-xs bg-orange-500">En attente</Badge>
+                              )}
+                            </>
+                          ) : isOwner && seance.is_copy ? (
+                            <span className="text-xs text-muted-foreground">Non partageable</span>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Badge variant={seance.is_shared ? "default" : "outline"}>
+                                {seance.is_shared ? "Oui" : "Non"}
+                              </Badge>
+                              {seance.is_shared && seance.is_validated && (
+                                <Badge className="text-xs bg-green-500">Validé</Badge>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
