@@ -206,6 +206,102 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_care_plans: {
+        Row: {
+          active_traitement_id: string | null
+          bilan_kine: string | null
+          comments: string | null
+          created_at: string
+          id: string
+          motif_consultation: string | null
+          objectifs_prise_en_charge: string | null
+          patient_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_traitement_id?: string | null
+          bilan_kine?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          motif_consultation?: string | null
+          objectifs_prise_en_charge?: string | null
+          patient_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_traitement_id?: string | null
+          bilan_kine?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          motif_consultation?: string | null
+          objectifs_prise_en_charge?: string | null
+          patient_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_care_plans_active_traitement_id_fkey"
+            columns: ["active_traitement_id"]
+            isOneToOne: false
+            referencedRelation: "traitement_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_care_plans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_seances: {
+        Row: {
+          created_at: string
+          id: string
+          ordre: number
+          patient_id: string
+          seance_type_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordre?: number
+          patient_id: string
+          seance_type_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordre?: number
+          patient_id?: string
+          seance_type_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_seances_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_seances_seance_type_id_fkey"
+            columns: ["seance_type_id"]
+            isOneToOne: false
+            referencedRelation: "seance_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null
