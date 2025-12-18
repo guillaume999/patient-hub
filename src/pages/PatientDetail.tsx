@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, Save, Trash2, User } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Trash2, User, Copy } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PatientCommentsCard } from "@/components/patient/PatientCommentsCard";
 import { PatientCareObjectivesCard } from "@/components/patient/PatientCareObjectivesCard";
 import { PatientSeancesCard } from "@/components/patient/PatientSeancesCard";
@@ -87,6 +89,13 @@ export default function PatientDetail() {
   
   const [importTraitementOpen, setImportTraitementOpen] = useState(false);
   const [importSeanceOpen, setImportSeanceOpen] = useState(false);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateOptions, setDuplicateOptions] = useState({
+    keepComments: true,
+    keepObjectives: true,
+    keepTraitement: true,
+  });
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -251,6 +260,58 @@ export default function PatientDetail() {
     }
   };
 
+  const handleDuplicate = async () => {
+    if (!patient || !user) return;
+    setDuplicating(true);
+
+    try {
+      // Create new patient with same data (except numero)
+      const { data: newPatient, error: patientError } = await supabase
+        .from("patients")
+        .insert({
+          user_id: user.id,
+          name: `${patient.name} (copie)`,
+          status: patient.status,
+          mutual_number: patient.mutual_number,
+          remaining_sessions: patient.remaining_sessions,
+          prescription: patient.prescription,
+          address: patient.address,
+          postal_code: patient.postal_code,
+          medical_notes: patient.medical_notes,
+          allergies: patient.allergies,
+          blood_type: patient.blood_type,
+        })
+        .select()
+        .single();
+
+      if (patientError || !newPatient) {
+        throw patientError || new Error("Erreur lors de la création du patient");
+      }
+
+      // Copy care plan if options selected
+      if (duplicateOptions.keepComments || duplicateOptions.keepObjectives || duplicateOptions.keepTraitement) {
+        await supabase.from("patient_care_plans").insert({
+          patient_id: newPatient.id,
+          user_id: user.id,
+          comments: duplicateOptions.keepComments ? carePlan.comments : "",
+          motif_consultation: duplicateOptions.keepObjectives ? carePlan.motif_consultation : "",
+          bilan_kine: duplicateOptions.keepObjectives ? carePlan.bilan_kine : "",
+          objectifs_prise_en_charge: duplicateOptions.keepObjectives ? carePlan.objectifs_prise_en_charge : "",
+          active_traitement_id: duplicateOptions.keepTraitement ? carePlan.active_traitement_id : null,
+        });
+      }
+
+      toast({ title: "Patient dupliqué avec succès" });
+      setDuplicateDialogOpen(false);
+      navigate(`/patients/${newPatient.id}`);
+    } catch (error: any) {
+      console.error("Error duplicating patient:", error);
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   const handleCarePlanChange = (field: keyof Omit<CarePlanData, "id" | "active_traitement_id">, value: string) => {
     setCarePlan({ ...carePlan, [field]: value });
   };
@@ -343,6 +404,14 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setDuplicateDialogOpen(true)}
+              title="Dupliquer ce patient"
+            >
+              <Copy className="w-4 h-4" />
+            </Button>
             <Button onClick={handleSave} disabled={saving} className="gradient-primary text-primary-foreground">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               Enregistrer
@@ -481,6 +550,52 @@ export default function PatientDetail() {
           onOpenChange={setImportSeanceOpen}
           onSelect={handleImportSeance}
         />
+
+        <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Dupliquer ce patient</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mb-4">
+              Un nouveau patient sera créé avec les mêmes informations. Le numéro sera attribué automatiquement.
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="keepComments" 
+                  checked={duplicateOptions.keepComments}
+                  onCheckedChange={(checked) => setDuplicateOptions({...duplicateOptions, keepComments: !!checked})}
+                />
+                <Label htmlFor="keepComments">Conserver les commentaires</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="keepObjectives" 
+                  checked={duplicateOptions.keepObjectives}
+                  onCheckedChange={(checked) => setDuplicateOptions({...duplicateOptions, keepObjectives: !!checked})}
+                />
+                <Label htmlFor="keepObjectives">Conserver les objectifs de soins (motif, bilan, objectifs)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="keepTraitement" 
+                  checked={duplicateOptions.keepTraitement}
+                  onCheckedChange={(checked) => setDuplicateOptions({...duplicateOptions, keepTraitement: !!checked})}
+                />
+                <Label htmlFor="keepTraitement">Conserver le plan de traitement actif</Label>
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleDuplicate} disabled={duplicating} className="gradient-primary text-primary-foreground">
+                {duplicating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                Dupliquer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
