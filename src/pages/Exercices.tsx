@@ -28,6 +28,7 @@ interface ExerciceItem {
   most_used_patho: string | null;
   duration: number | null;
   is_shared: boolean;
+  is_validated: boolean | null;
   is_copy: boolean;
   original_id: string | null;
   user_id: string;
@@ -145,19 +146,28 @@ export default function Exercices() {
     }
   };
 
-  const toggleShare = async (exerciceId: string, currentShared: boolean) => {
+  const toggleShare = async (exerciceId: string, currentShared: boolean, isValidated: boolean | null) => {
+    // If already validated and shared, cannot unshare
+    if (isValidated && currentShared) {
+      toast.error("Cet exercice a été validé et ne peut plus être retiré du partage");
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from("exercices")
-        .update({ is_shared: !currentShared })
+        .update({ 
+          is_shared: !currentShared,
+          is_validated: false // Reset validation when sharing
+        })
         .eq("id", exerciceId);
 
       if (error) throw error;
 
       setExercices(exercices.map(e => 
-        e.id === exerciceId ? { ...e, is_shared: !currentShared } : e
+        e.id === exerciceId ? { ...e, is_shared: !currentShared, is_validated: false } : e
       ));
-      toast.success(currentShared ? "Exercice dé-partagé" : "Exercice partagé");
+      toast.success(currentShared ? "Exercice dé-partagé" : "Exercice partagé (en attente de validation)");
     } catch (error) {
       console.error("Error toggling share:", error);
       toast.error("Erreur lors du partage");
@@ -278,7 +288,8 @@ export default function Exercices() {
   const filteredExercices = exercices.filter(exercice => {
     if (filter === "mine" && exercice.user_id !== user?.id) return false;
     if (filter === "physiooffice" && exercice.user_id === user?.id) return false;
-    if (filter === "shared" && (exercice.user_id === user?.id || !exercice.is_shared)) return false;
+    // Shared filter: only show validated shared exercises from other users
+    if (filter === "shared" && (exercice.user_id === user?.id || !exercice.is_shared || !exercice.is_validated)) return false;
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -613,10 +624,19 @@ export default function Exercices() {
                           
                           <TableCell>
                             {canShare ? (
-                              <Checkbox
-                                checked={exercice.is_shared}
-                                onCheckedChange={() => toggleShare(exercice.id, exercice.is_shared)}
-                              />
+                              <>
+                                <Checkbox
+                                  checked={exercice.is_shared}
+                                  onCheckedChange={() => toggleShare(exercice.id, exercice.is_shared, exercice.is_validated)}
+                                  disabled={exercice.is_validated && exercice.is_shared}
+                                />
+                                {exercice.is_shared && exercice.is_validated && (
+                                  <Badge className="ml-2 text-xs bg-green-500">Validé</Badge>
+                                )}
+                                {exercice.is_shared && !exercice.is_validated && (
+                                  <Badge variant="secondary" className="ml-2 text-xs bg-orange-500">En attente</Badge>
+                                )}
+                              </>
                             ) : isOwner && exercice.is_copy ? (
                               <span className="text-xs text-muted-foreground">Non partageable</span>
                             ) : (
