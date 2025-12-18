@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Dumbbell, Loader2, Plus, Play, Maximize2, Trash2, Upload, Search, Share2, Copy } from "lucide-react";
+import { Dumbbell, Loader2, Plus, Play, Trash2, Upload, Search, Share2, Copy, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,8 +41,8 @@ export default function Exercices() {
   const [exercices, setExercices] = useState<ExerciceItem[]>([]);
   const [loadingExercices, setLoadingExercices] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingExercice, setEditingExercice] = useState<ExerciceItem | null>(null);
   const [playingExercice, setPlayingExercice] = useState<ExerciceItem | null>(null);
-  const [fullscreenExercice, setFullscreenExercice] = useState<ExerciceItem | null>(null);
   const [uploading, setUploading] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,7 +52,6 @@ export default function Exercices() {
     description: "",
     category_pathology: "",
     type_renfo: "",
-    most_used_patho: "",
     file: null as File | null,
   });
 
@@ -114,7 +113,7 @@ export default function Exercices() {
         video_url: urlData.publicUrl,
         category_pathology: formData.category_pathology || null,
         type_renfo: formData.type_renfo || null,
-        most_used_patho: formData.most_used_patho || null,
+        
         is_shared: false,
       });
 
@@ -126,7 +125,6 @@ export default function Exercices() {
         description: "",
         category_pathology: "",
         type_renfo: "",
-        most_used_patho: "",
         file: null,
       });
       setIsAddDialogOpen(false);
@@ -185,6 +183,65 @@ export default function Exercices() {
     } catch (error) {
       console.error("Error copying exercice:", error);
       toast.error("Erreur lors de la copie");
+    }
+  };
+
+  const duplicateAndEdit = async (exercice: ExerciceItem) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase.from("videos").insert({
+        user_id: user.id,
+        title: exercice.title + " (copie)",
+        description: exercice.description,
+        video_url: exercice.video_url,
+        thumbnail_url: exercice.thumbnail_url,
+        category: exercice.category,
+        category_pathology: exercice.category_pathology,
+        type_renfo: exercice.type_renfo,
+        most_used_patho: exercice.most_used_patho,
+        duration: exercice.duration,
+        is_shared: false,
+        is_copy: true,
+        original_id: exercice.id,
+      }).select().single();
+
+      if (error) throw error;
+
+      toast.success("Exercice dupliqué");
+      await fetchExercices();
+      
+      // Open the duplicate for editing
+      const duplicated = { ...exercice, ...data, id: data.id, title: data.title };
+      setEditingExercice(duplicated);
+    } catch (error) {
+      console.error("Error duplicating exercice:", error);
+      toast.error("Erreur lors de la duplication");
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editingExercice || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from("videos")
+        .update({
+          title: editingExercice.title,
+          description: editingExercice.description,
+          category_pathology: editingExercice.category_pathology,
+          type_renfo: editingExercice.type_renfo,
+        })
+        .eq("id", editingExercice.id);
+
+      if (error) throw error;
+
+      toast.success("Exercice modifié");
+      setEditingExercice(null);
+      fetchExercices();
+    } catch (error) {
+      console.error("Error updating exercice:", error);
+      toast.error("Erreur lors de la modification");
     }
   };
 
@@ -295,15 +352,6 @@ export default function Exercices() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="most_used_patho">Patho qui l'utilisent le plus</Label>
-                  <Input
-                    id="most_used_patho"
-                    value={formData.most_used_patho}
-                    onChange={(e) => setFormData({ ...formData, most_used_patho: e.target.value })}
-                    placeholder="Ex: Tendinite, Entorse..."
-                  />
-                </div>
-                <div>
                   <Label htmlFor="file">Fichier vidéo *</Label>
                   <Input
                     id="file"
@@ -327,9 +375,63 @@ export default function Exercices() {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={!!editingExercice} onOpenChange={(open) => !open && setEditingExercice(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Modifier l'exercice</DialogTitle>
+              </DialogHeader>
+              {editingExercice && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-title">Titre *</Label>
+                    <Input
+                      id="edit-title"
+                      value={editingExercice.title}
+                      onChange={(e) => setEditingExercice({ ...editingExercice, title: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      value={editingExercice.description || ""}
+                      onChange={(e) => setEditingExercice({ ...editingExercice, description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-category_pathology">Catégorie Pathologie</Label>
+                    <Input
+                      id="edit-category_pathology"
+                      value={editingExercice.category_pathology || ""}
+                      onChange={(e) => setEditingExercice({ ...editingExercice, category_pathology: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-type_renfo">Type de Renfo</Label>
+                    <Input
+                      id="edit-type_renfo"
+                      value={editingExercice.type_renfo || ""}
+                      onChange={(e) => setEditingExercice({ ...editingExercice, type_renfo: e.target.value })}
+                    />
+                  </div>
+                  <div className="pt-2">
+                    <video
+                      src={editingExercice.video_url}
+                      controls
+                      className="w-full rounded-lg max-h-48"
+                    />
+                  </div>
+                  <Button onClick={handleEditSave} className="w-full">
+                    Enregistrer
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {/* Filters and Search */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex gap-2">
             <Button
@@ -387,10 +489,9 @@ export default function Exercices() {
                       <TableHead>Titre</TableHead>
                       <TableHead>Cat. Pathologie</TableHead>
                       <TableHead>Type Renfo</TableHead>
-                      <TableHead>Patho fréquente</TableHead>
                       <TableHead>Partagé</TableHead>
                       <TableHead className="w-32">Aperçu</TableHead>
-                      <TableHead className="w-24">Actions</TableHead>
+                      <TableHead className="w-32">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -415,7 +516,6 @@ export default function Exercices() {
                           </TableCell>
                           <TableCell>{exercice.category_pathology || "-"}</TableCell>
                           <TableCell>{exercice.type_renfo || "-"}</TableCell>
-                          <TableCell>{exercice.most_used_patho || "-"}</TableCell>
                           <TableCell>
                             {canShare ? (
                               <Checkbox
@@ -455,49 +555,31 @@ export default function Exercices() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setFullscreenExercice(exercice)}
-                                  >
-                                    <Maximize2 className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-4xl">
-                                  <DialogHeader>
-                                    <DialogTitle>{exercice.title}</DialogTitle>
-                                  </DialogHeader>
-                                  <video
-                                    src={exercice.video_url}
-                                    controls
-                                    className="w-full rounded-lg"
-                                    autoPlay
-                                  />
-                                  {exercice.description && (
-                                    <p className="text-muted-foreground mt-2">
-                                      {exercice.description}
-                                    </p>
-                                  )}
-                                </DialogContent>
-                              </Dialog>
-                              {!isOwner && (
+                              {isOwner && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => copyExercice(exercice)}
-                                  title="Copier dans ma bibliothèque"
+                                  onClick={() => setEditingExercice(exercice)}
+                                  title="Modifier"
                                 >
-                                  <Copy className="w-4 h-4" />
+                                  <Pencil className="w-4 h-4" />
                                 </Button>
                               )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => duplicateAndEdit(exercice)}
+                                title="Dupliquer et modifier"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
                               {isOwner && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleDelete(exercice.id, exercice.video_url)}
                                   className="text-destructive hover:text-destructive"
+                                  title="Supprimer"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
