@@ -34,7 +34,7 @@ interface ExerciceItem {
   created_at: string;
 }
 
-type FilterType = "mine" | "physiooffice";
+type FilterType = "mine" | "physiooffice" | "shared";
 
 export default function Exercices() {
   const { user, loading } = useAuth();
