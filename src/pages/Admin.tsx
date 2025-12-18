@@ -94,6 +94,7 @@ export default function Admin() {
   const { toast } = useToast();
 
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
   const [seances, setSeances] = useState<SeanceType[]>([]);
   const [traitements, setTraitements] = useState<TraitementType[]>([]);
   const [exercices, setExercices] = useState<ExerciceType[]>([]);
@@ -156,6 +157,14 @@ export default function Admin() {
 
       if (usersError) throw usersError;
       setUsers(usersData || []);
+
+      // Fetch admin roles
+      const { data: adminRolesData } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      
+      setAdminUserIds(new Set(adminRolesData?.map(r => r.user_id) || []));
 
       // Fetch seances
       const { data: seancesData, error: seancesError } = await supabase
@@ -709,11 +718,12 @@ export default function Admin() {
                             </td>
                             <td className="py-3 px-2">
                               <Button
-                                variant="outline"
+                                variant={adminUserIds.has(u.user_id) ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => openAdminConfirmDialog(u.user_id, u.email)}
+                                className={adminUserIds.has(u.user_id) ? "bg-primary text-primary-foreground" : ""}
                               >
-                                <Shield className="w-4 h-4" />
+                                <Shield className={`w-4 h-4 ${adminUserIds.has(u.user_id) ? "" : ""}`} />
                               </Button>
                             </td>
                           </tr>
