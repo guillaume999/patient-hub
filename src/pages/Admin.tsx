@@ -12,6 +12,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AdminPasswordConfirmDialog } from "@/components/admin/AdminPasswordConfirmDialog";
+import { ExerciceDetailDialog } from "@/components/admin/ExerciceDetailDialog";
 import { 
   Users, 
   FileText, 
@@ -74,6 +75,9 @@ interface ExerciceType {
   original_id: string | null;
   user_id: string;
   created_at: string;
+  video_url?: string | null;
+  thumbnail_url?: string | null;
+  pathologie_tags?: string[] | null;
 }
 
 interface Stats {
@@ -99,6 +103,9 @@ export default function Admin() {
   const [seances, setSeances] = useState<SeanceType[]>([]);
   const [traitements, setTraitements] = useState<TraitementType[]>([]);
   const [exercices, setExercices] = useState<ExerciceType[]>([]);
+  const [featuredExerciceIds, setFeaturedExerciceIds] = useState<Set<string>>(new Set());
+  const [selectedExercice, setSelectedExercice] = useState<ExerciceType | null>(null);
+  const [exerciceDialogOpen, setExerciceDialogOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     premiumUsers: 0,
@@ -193,6 +200,13 @@ export default function Admin() {
 
       if (exercicesError) throw exercicesError;
       setExercices(exercicesData || []);
+
+      // Fetch featured exercices
+      const { data: featuredData } = await supabase
+        .from("featured_exercices")
+        .select("exercice_id");
+      
+      setFeaturedExerciceIds(new Set(featuredData?.map(f => f.exercice_id) || []));
 
       // Calculate stats
       const now = new Date();
@@ -1030,15 +1044,21 @@ export default function Admin() {
                         <th className="text-left py-3 px-2">Créé le</th>
                         <th className="text-left py-3 px-2">Copies</th>
                         <th className="text-left py-3 px-2">Statut</th>
-                        <th className="text-left py-3 px-2">Validé</th>
-                        <th className="text-left py-3 px-2">Actions</th>
+                        <th className="text-left py-3 px-2">Plateforme</th>
                         <th className="text-left py-3 px-2">Utilisateur</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExercices.map((e) => (
-                        <tr key={e.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-2">{e.title}</td>
+                        <tr 
+                          key={e.id} 
+                          className="border-b hover:bg-muted/50 cursor-pointer"
+                          onClick={() => {
+                            setSelectedExercice(e);
+                            setExerciceDialogOpen(true);
+                          }}
+                        >
+                          <td className="py-3 px-2 font-medium">{e.title}</td>
                           <td className="py-3 px-2 text-sm text-muted-foreground">
                             {e.author_name || "Anonyme"}
                           </td>
@@ -1062,20 +1082,11 @@ export default function Admin() {
                             )}
                           </td>
                           <td className="py-3 px-2">
-                            <Switch
-                              checked={e.status === 'shared'}
-                              onCheckedChange={() => toggleExerciceValidation(e.id, e.status)}
-                              disabled={e.status === 'draft'}
-                            />
-                          </td>
-                          <td className="py-3 px-2">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteExercice(e.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {featuredExerciceIds.has(e.id) ? (
+                              <Badge className="bg-yellow-500 text-yellow-900">Oui</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">Non</span>
+                            )}
                           </td>
                           <td className="py-3 px-2 text-sm text-muted-foreground">
                             {getUserDisplayName(e.user_id)}
@@ -1096,6 +1107,16 @@ export default function Admin() {
           onConfirm={confirmToggleAdmin}
           userEmail={adminConfirmDialog.userEmail}
           action={adminConfirmDialog.action}
+        />
+
+        <ExerciceDetailDialog
+          exercice={selectedExercice}
+          open={exerciceDialogOpen}
+          onOpenChange={setExerciceDialogOpen}
+          onUpdate={fetchData}
+          getUserDisplayName={getUserDisplayName}
+          isFeatured={selectedExercice ? featuredExerciceIds.has(selectedExercice.id) : false}
+          copyCount={selectedExercice ? (exerciceCopyCounts[selectedExercice.id] || 0) : 0}
         />
       </div>
     </Layout>
