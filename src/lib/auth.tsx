@@ -72,7 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Use scope: 'local' to always clear local session even if server session is invalid
+    await supabase.auth.signOut({ scope: 'local' });
   };
 
   return (
