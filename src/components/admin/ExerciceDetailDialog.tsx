@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -17,10 +18,10 @@ import {
   Trash2,
   Star,
   StarOff,
-  ExternalLink,
   User,
   Calendar,
   FileText,
+  XCircle,
 } from "lucide-react";
 
 interface ExerciceType {
@@ -36,6 +37,7 @@ interface ExerciceType {
   video_url?: string | null;
   thumbnail_url?: string | null;
   pathologie_tags?: string[] | null;
+  rejection_reason?: string | null;
 }
 
 interface ExerciceDetailDialogProps {
@@ -64,6 +66,8 @@ export function ExerciceDetailDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   if (!exercice) return null;
 
@@ -83,7 +87,7 @@ export function ExerciceDetailDialog({
       const newStatus = exercice.status === "shared" ? "pending" : "shared";
       const { error } = await supabase
         .from("exercices")
-        .update({ status: newStatus })
+        .update({ status: newStatus, rejection_reason: null })
         .eq("id", exercice.id);
 
       if (error) throw error;
@@ -98,6 +102,47 @@ export function ExerciceDetailDialog({
       toast({
         title: "Erreur",
         description: "Impossible de valider l'exercice.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un motif de refus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("exercices")
+        .update({ 
+          status: "rejected",
+          rejection_reason: rejectionReason.trim()
+        })
+        .eq("id", exercice.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Exercice refusé",
+        description: "L'exercice a été refusé avec le motif indiqué.",
+      });
+      setShowRejectForm(false);
+      setRejectionReason("");
+      onUpdate();
+    } catch (error) {
+      console.error("Error rejecting exercice:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de refuser l'exercice.",
         variant: "destructive",
       });
     } finally {
@@ -175,6 +220,8 @@ export function ExerciceDetailDialog({
         return <Badge className="bg-green-500">Partagé</Badge>;
       case "pending":
         return <Badge className="bg-orange-500">En attente</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-500">Refusé</Badge>;
       default:
         return <Badge variant="outline">Brouillon</Badge>;
     }
@@ -203,6 +250,19 @@ export function ExerciceDetailDialog({
               <Badge variant="secondary">{copyCount} copies</Badge>
             )}
           </div>
+
+          {/* Rejection Reason Display */}
+          {exercice.status === "rejected" && exercice.rejection_reason && (
+            <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+              <h4 className="font-semibold text-red-700 dark:text-red-300 mb-1 flex items-center gap-2">
+                <XCircle className="w-4 h-4" />
+                Motif de refus
+              </h4>
+              <p className="text-red-600 dark:text-red-400 text-sm">
+                {exercice.rejection_reason}
+              </p>
+            </div>
+          )}
 
           {/* Video Preview */}
           {exercice.video_url && (
@@ -277,18 +337,69 @@ export function ExerciceDetailDialog({
             </Label>
           </div>
 
+          {/* Reject Form */}
+          {showRejectForm && (
+            <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-950 space-y-3">
+              <h4 className="font-semibold text-red-700 dark:text-red-300">
+                Motif du refus
+              </h4>
+              <Textarea
+                placeholder="Expliquez pourquoi cet exercice est refusé..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px] bg-background"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={handleReject}
+                  disabled={loading || !rejectionReason.trim()}
+                  size="sm"
+                >
+                  <XCircle className="w-4 h-4 mr-1" />
+                  Confirmer le refus
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowRejectForm(false);
+                    setRejectionReason("");
+                  }}
+                  disabled={loading}
+                  size="sm"
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-4 border-t">
             {exercice.status !== "draft" && (
-              <Button
-                variant={exercice.status === "shared" ? "outline" : "default"}
-                onClick={handleValidate}
-                disabled={loading}
-                className="gap-1"
-              >
-                <CheckCircle className="w-4 h-4" />
-                {exercice.status === "shared" ? "Invalider" : "Valider"}
-              </Button>
+              <>
+                <Button
+                  variant={exercice.status === "shared" ? "outline" : "default"}
+                  onClick={handleValidate}
+                  disabled={loading}
+                  className="gap-1"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {exercice.status === "shared" ? "Invalider" : "Valider"}
+                </Button>
+
+                {exercice.status === "pending" && !showRejectForm && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRejectForm(true)}
+                    disabled={loading}
+                    className="gap-1 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Refuser
+                  </Button>
+                )}
+              </>
             )}
 
             <Button
@@ -309,7 +420,6 @@ export function ExerciceDetailDialog({
                 </>
               )}
             </Button>
-
 
             <Button
               variant="destructive"
