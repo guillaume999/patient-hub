@@ -749,19 +749,15 @@ export default function Exercices() {
                             </Button>
                           )}
 
-                          {/* Share toggle */}
-                          {exercice.user_id === user?.id && exercice.status !== "shared" && !exercice.is_copy && (
+                          {/* Cancel share for pending */}
+                          {exercice.user_id === user?.id && exercice.status === "pending" && !exercice.is_copy && (
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => toggleShare(exercice)}
-                              title={exercice.status === "pending" ? "Annuler le partage" : "Partager"}
+                              title="Annuler le partage"
                             >
-                              {exercice.status === "pending" ? (
-                                <X className="w-4 h-4" />
-                              ) : (
-                                <Users className="w-4 h-4" />
-                              )}
+                              <X className="w-4 h-4" />
                             </Button>
                           )}
 
