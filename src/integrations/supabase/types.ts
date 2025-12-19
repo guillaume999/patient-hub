@@ -449,7 +449,6 @@ export type Database = {
           ordre: number
           repetitions: number | null
           seance_type_id: string
-          video_id: string | null
         }
         Insert: {
           created_at?: string
@@ -460,7 +459,6 @@ export type Database = {
           ordre?: number
           repetitions?: number | null
           seance_type_id: string
-          video_id?: string | null
         }
         Update: {
           created_at?: string
@@ -471,7 +469,6 @@ export type Database = {
           ordre?: number
           repetitions?: number | null
           seance_type_id?: string
-          video_id?: string | null
         }
         Relationships: [
           {
@@ -611,7 +608,6 @@ export type Database = {
           id: string
           ordre: number
           traitement_type_id: string
-          video_id: string | null
         }
         Insert: {
           created_at?: string
@@ -619,7 +615,6 @@ export type Database = {
           id?: string
           ordre?: number
           traitement_type_id: string
-          video_id?: string | null
         }
         Update: {
           created_at?: string
@@ -627,7 +622,6 @@ export type Database = {
           id?: string
           ordre?: number
           traitement_type_id?: string
-          video_id?: string | null
         }
         Relationships: [
           {
