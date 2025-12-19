@@ -142,6 +142,7 @@ export type Database = {
           is_platform: boolean | null
           original_id: string | null
           pathologie_tags: string[] | null
+          rejection_reason: string | null
           status: string
           thumbnail_url: string | null
           title: string
@@ -158,6 +159,7 @@ export type Database = {
           is_platform?: boolean | null
           original_id?: string | null
           pathologie_tags?: string[] | null
+          rejection_reason?: string | null
           status?: string
           thumbnail_url?: string | null
           title: string
@@ -174,6 +176,7 @@ export type Database = {
           is_platform?: boolean | null
           original_id?: string | null
           pathologie_tags?: string[] | null
+          rejection_reason?: string | null
           status?: string
           thumbnail_url?: string | null
           title?: string
