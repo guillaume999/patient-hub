@@ -12,7 +12,6 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AdminPasswordConfirmDialog } from "@/components/admin/AdminPasswordConfirmDialog";
-import { ExerciceRejectDialog } from "@/components/admin/ExerciceRejectDialog";
 import { 
   Users, 
   FileText, 
@@ -23,8 +22,6 @@ import {
   Shield,
   CheckCircle,
   ClipboardList,
-  Dumbbell,
-  Star
 } from "lucide-react";
 
 interface UserProfile {
@@ -66,19 +63,6 @@ interface TraitementType {
   created_at: string;
 }
 
-interface ExerciceType {
-  id: string;
-  title: string;
-  category_pathology_tags: string[] | null;
-  is_shared: boolean;
-  is_validated: boolean | null;
-  is_copy: boolean | null;
-  user_id: string;
-  created_at: string;
-  rejection_reason: string | null;
-  rejected_at: string | null;
-}
-
 interface Stats {
   totalUsers: number;
   premiumUsers: number;
@@ -86,8 +70,6 @@ interface Stats {
   totalSeances: number;
   totalTraitements: number;
   pendingTraitements: number;
-  totalExercices: number;
-  pendingExercices: number;
   totalPatients: number;
 }
 
@@ -101,8 +83,6 @@ export default function Admin() {
   const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
   const [seances, setSeances] = useState<SeanceType[]>([]);
   const [traitements, setTraitements] = useState<TraitementType[]>([]);
-  const [exercices, setExercices] = useState<ExerciceType[]>([]);
-  const [featuredExerciceIds, setFeaturedExerciceIds] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     premiumUsers: 0,
@@ -110,14 +90,11 @@ export default function Admin() {
     totalSeances: 0,
     totalTraitements: 0,
     pendingTraitements: 0,
-    totalExercices: 0,
-    pendingExercices: 0,
     totalPatients: 0,
   });
   const [userSearch, setUserSearch] = useState("");
   const [seanceSearch, setSeanceSearch] = useState("");
   const [traitementSearch, setTraitementSearch] = useState("");
-  const [exerciceSearch, setExerciceSearch] = useState("");
   const [loading, setLoading] = useState(true);
   
   // Admin role confirmation dialog state
@@ -127,13 +104,6 @@ export default function Admin() {
     userEmail: string | null;
     action: "add" | "remove";
   }>({ open: false, userId: "", userEmail: null, action: "add" });
-
-  // Exercice rejection dialog state
-  const [rejectDialog, setRejectDialog] = useState<{
-    open: boolean;
-    exerciceId: string;
-    exerciceTitle: string;
-  }>({ open: false, exerciceId: "", exerciceTitle: "" });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -196,22 +166,6 @@ export default function Admin() {
       if (traitementsError) throw traitementsError;
       setTraitements(traitementsData || []);
 
-      // Fetch exercices
-      const { data: exercicesData, error: exercicesError } = await supabase
-        .from("exercices")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (exercicesError) throw exercicesError;
-      setExercices(exercicesData || []);
-
-      // Fetch featured exercices
-      const { data: featuredExercicesData } = await supabase
-        .from("featured_exercices")
-        .select("exercice_id");
-      
-      setFeaturedExerciceIds(new Set(featuredExercicesData?.map(f => f.exercice_id) || []));
-
       // Calculate stats
       const now = new Date();
       const premiumCount = usersData?.filter(u => u.is_premium).length || 0;
@@ -219,7 +173,6 @@ export default function Admin() {
         !u.is_premium && u.trial_end_date && new Date(u.trial_end_date) > now
       ).length || 0;
       const pendingTraitementsCount = traitementsData?.filter(t => t.is_shared && !t.is_validated).length || 0;
-      const pendingExercicesCount = exercicesData?.filter(e => e.is_shared && !e.is_validated).length || 0;
 
       // Fetch patients count
       const { count: patientsCount } = await supabase
@@ -233,8 +186,6 @@ export default function Admin() {
         totalSeances: seancesData?.length || 0,
         totalTraitements: traitementsData?.length || 0,
         pendingTraitements: pendingTraitementsCount,
-        totalExercices: exercicesData?.length || 0,
-        pendingExercices: pendingExercicesCount,
         totalPatients: patientsCount || 0,
       });
     } catch (error) {
@@ -459,132 +410,6 @@ export default function Admin() {
     }
   };
 
-  const toggleExerciceValidation = async (exerciceId: string, currentStatus: boolean | null) => {
-    try {
-      const { error } = await supabase
-        .from("exercices")
-        .update({ 
-          is_validated: !currentStatus,
-          rejection_reason: null,
-          rejected_at: null
-        })
-        .eq("id", exerciceId);
-
-      if (error) throw error;
-
-      setExercices(exercices.map(e => 
-        e.id === exerciceId ? { ...e, is_validated: !currentStatus, rejection_reason: null, rejected_at: null } : e
-      ));
-
-      toast({
-        title: "Succès",
-        description: `Exercice ${!currentStatus ? "validé" : "invalidé"}.`,
-      });
-    } catch (error) {
-      console.error("Error validating exercice:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de valider l'exercice.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const rejectExercice = async (exerciceId: string, reason: string) => {
-    try {
-      const { error } = await supabase
-        .from("exercices")
-        .update({ 
-          is_shared: false,
-          is_validated: false,
-          rejection_reason: reason,
-          rejected_at: new Date().toISOString()
-        })
-        .eq("id", exerciceId);
-
-      if (error) throw error;
-
-      setExercices(exercices.map(e => 
-        e.id === exerciceId ? { ...e, is_shared: false, is_validated: false, rejection_reason: reason, rejected_at: new Date().toISOString() } : e
-      ));
-
-      toast({
-        title: "Exercice refusé",
-        description: "L'utilisateur a été notifié du refus.",
-      });
-    } catch (error) {
-      console.error("Error rejecting exercice:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de refuser l'exercice.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const toggleFeaturedExercice = async (exerciceId: string) => {
-    const isFeatured = featuredExerciceIds.has(exerciceId);
-    
-    try {
-      if (isFeatured) {
-        const { error } = await supabase
-          .from("featured_exercices")
-          .delete()
-          .eq("exercice_id", exerciceId);
-        
-        if (error) throw error;
-        
-        const newSet = new Set(featuredExerciceIds);
-        newSet.delete(exerciceId);
-        setFeaturedExerciceIds(newSet);
-        
-        toast({ title: "Exercice retiré de PhysioOffice" });
-      } else {
-        const { error } = await supabase
-          .from("featured_exercices")
-          .insert({ exercice_id: exerciceId, added_by: user?.id });
-        
-        if (error) throw error;
-        
-        const newSet = new Set(featuredExerciceIds);
-        newSet.add(exerciceId);
-        setFeaturedExerciceIds(newSet);
-        
-        toast({ title: "Exercice ajouté à PhysioOffice" });
-      }
-    } catch (error) {
-      console.error("Error toggling featured exercice:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier le statut.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteExercice = async (exerciceId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cet exercice ?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("exercices")
-        .delete()
-        .eq("id", exerciceId);
-
-      if (error) throw error;
-
-      setExercices(exercices.filter(e => e.id !== exerciceId));
-      toast({ title: "Exercice supprimé" });
-    } catch (error) {
-      console.error("Error deleting exercice:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer l'exercice.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString("fr-FR", {
       day: "2-digit",
@@ -596,13 +421,13 @@ export default function Admin() {
   };
 
   const getUserDisplayName = (userId: string) => {
-    const user = users.find(u => u.user_id === userId);
-    if (!user) return "Inconnu";
-    if (user.first_name || user.last_name) {
-      return `${user.first_name || ""} ${user.last_name || ""}`.trim();
+    const foundUser = users.find(u => u.user_id === userId);
+    if (!foundUser) return "Inconnu";
+    if (foundUser.first_name || foundUser.last_name) {
+      return `${foundUser.first_name || ""} ${foundUser.last_name || ""}`.trim();
     }
-    if (user.pseudo) return user.pseudo;
-    if (user.email) return user.email;
+    if (foundUser.pseudo) return foundUser.pseudo;
+    if (foundUser.email) return foundUser.email;
     return "Inconnu";
   };
 
@@ -646,19 +471,7 @@ export default function Admin() {
       t.author_name?.toLowerCase().includes(traitementSearch.toLowerCase())
     );
 
-  // Filter exercices
-  const filteredExercices = exercices
-    .filter(e => !e.is_copy)
-    .filter(e =>
-      e.title.toLowerCase().includes(exerciceSearch.toLowerCase()) ||
-      e.category_pathology_tags?.some(tag => tag.toLowerCase().includes(exerciceSearch.toLowerCase()))
-    );
-
   const pendingTraitements = filteredTraitements.filter(t => t.is_shared && !t.is_validated);
-  const pendingExercices = filteredExercices.filter(e => e.is_shared && !e.is_validated);
-  
-  // Exercices to display in table (exclude pending ones)
-  const tableExercices = filteredExercices.filter(e => !(e.is_shared && !e.is_validated));
 
   if (authLoading || adminLoading || loading) {
     return (
@@ -726,13 +539,6 @@ export default function Admin() {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Utilisateurs
-            </TabsTrigger>
-            <TabsTrigger value="exercices" className="flex items-center gap-2">
-              <Dumbbell className="w-4 h-4" />
-              Exercices
-              {pendingExercices.length > 0 && (
-                <Badge variant="destructive" className="ml-1">{pendingExercices.length}</Badge>
-              )}
             </TabsTrigger>
             <TabsTrigger value="seances" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
@@ -832,7 +638,7 @@ export default function Admin() {
                                 onClick={() => openAdminConfirmDialog(u.user_id, u.email)}
                                 className={adminUserIds.has(u.user_id) ? "bg-primary text-primary-foreground" : ""}
                               >
-                                <Shield className={`w-4 h-4 ${adminUserIds.has(u.user_id) ? "" : ""}`} />
+                                <Shield className="w-4 h-4" />
                               </Button>
                             </td>
                           </tr>
@@ -1037,178 +843,16 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="exercices">
-            <Card>
-              <CardHeader>
-                <CardTitle>Modération des exercices</CardTitle>
-                <div className="relative mt-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Rechercher par titre ou catégorie..."
-                    value={exerciceSearch}
-                    onChange={(e) => setExerciceSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {pendingExercices.length > 0 && (
-                  <div className="mb-6 p-4 bg-orange-500/10 rounded-lg border border-orange-500/30">
-                    <h3 className="font-semibold text-orange-600 mb-3 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      En attente de validation ({pendingExercices.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {pendingExercices.map((e) => (
-                        <div key={e.id} className="flex items-center justify-between bg-background p-3 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <p className="font-medium">{e.title}</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {(e.category_pathology_tags || []).length > 0 ? (
-                                  e.category_pathology_tags?.map((tag, idx) => (
-                                    <Badge key={idx} variant="secondary" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">Sans tags</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => toggleExerciceValidation(e.id, false)}
-                              className="gap-1"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Valider
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setRejectDialog({ open: true, exerciceId: e.id, exerciceTitle: e.title })}
-                              className="gap-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            >
-                              Refuser
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteExercice(e.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-2">Titre</th>
-                        <th className="text-left py-3 px-2">Tags Pathologie</th>
-                        <th className="text-left py-3 px-2">Créé le</th>
-                        <th className="text-left py-3 px-2">Statut</th>
-                        <th className="text-left py-3 px-2">Validé</th>
-                        <th className="text-left py-3 px-2">PhysioOffice</th>
-                        <th className="text-left py-3 px-2">Actions</th>
-                        <th className="text-left py-3 px-2">Utilisateur</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tableExercices.map((e) => (
-                        <tr key={e.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-2">{e.title}</td>
-                          <td className="py-3 px-2">
-                            <div className="flex flex-wrap gap-1">
-                              {(e.category_pathology_tags || []).length > 0 ? (
-                                e.category_pathology_tags?.map((tag, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
-                                    {tag}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-muted-foreground">
-                            {formatDateTime(e.created_at)}
-                          </td>
-                          <td className="py-3 px-2">
-                            {e.is_shared ? (
-                              e.is_validated ? (
-                                <Badge className="bg-green-500">Partagé & Validé</Badge>
-                              ) : (
-                                <Badge variant="secondary" className="bg-orange-500">En attente</Badge>
-                              )
-                            ) : (
-                              <Badge variant="outline">Privé</Badge>
-                            )}
-                          </td>
-                          <td className="py-3 px-2">
-                            <Switch
-                              checked={e.is_validated || false}
-                              onCheckedChange={() => toggleExerciceValidation(e.id, e.is_validated)}
-                              disabled={!e.is_shared}
-                            />
-                          </td>
-                          <td className="py-3 px-2">
-                            <Button
-                              variant={featuredExerciceIds.has(e.id) ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => toggleFeaturedExercice(e.id)}
-                              disabled={!e.is_validated}
-                              title={!e.is_validated ? "L'exercice doit être validé" : featuredExerciceIds.has(e.id) ? "Retirer de PhysioOffice" : "Ajouter à PhysioOffice"}
-                            >
-                              <Star className={`w-4 h-4 ${featuredExerciceIds.has(e.id) ? "fill-current" : ""}`} />
-                            </Button>
-                          </td>
-                          <td className="py-3 px-2">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteExercice(e.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-muted-foreground">
-                            {getUserDisplayName(e.user_id)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
+
+        <AdminPasswordConfirmDialog
+          open={adminConfirmDialog.open}
+          onOpenChange={(open) => setAdminConfirmDialog(prev => ({ ...prev, open }))}
+          onConfirm={confirmToggleAdmin}
+          userEmail={adminConfirmDialog.userEmail}
+          action={adminConfirmDialog.action}
+        />
       </div>
-
-      <AdminPasswordConfirmDialog
-        open={adminConfirmDialog.open}
-        onOpenChange={(open) => setAdminConfirmDialog({ ...adminConfirmDialog, open })}
-        onConfirm={confirmToggleAdmin}
-        userEmail={adminConfirmDialog.userEmail}
-        action={adminConfirmDialog.action}
-      />
-
-      <ExerciceRejectDialog
-        open={rejectDialog.open}
-        onOpenChange={(open) => setRejectDialog({ ...rejectDialog, open })}
-        onConfirm={(reason) => rejectExercice(rejectDialog.exerciceId, reason)}
-        exerciceTitle={rejectDialog.exerciceTitle}
-      />
     </Layout>
   );
 }

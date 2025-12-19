@@ -51,14 +51,6 @@ export function Navbar() {
                   Patients
                 </Link>
                 <Link
-                  to="/exercices"
-                  className={`font-medium transition-colors hover:text-primary ${
-                    isActive("/exercices") ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  Exercices
-                </Link>
-                <Link
                   to="/seance-type"
                   className={`font-medium transition-colors hover:text-primary ${
                     isActive("/seance-type") ? "text-primary" : "text-muted-foreground"
@@ -162,13 +154,6 @@ export function Navbar() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Patients
-                  </Link>
-                  <Link
-                    to="/exercices"
-                    className="font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Exercices
                   </Link>
                   <Link
                     to="/seance-type"
