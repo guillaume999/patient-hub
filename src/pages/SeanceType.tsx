@@ -20,6 +20,12 @@ interface SeanceExercice {
   duration_seconds: number | null;
   series: number;
   exercice_id: string | null;
+  exercice?: {
+    id: string;
+    title: string;
+    thumbnail_url: string | null;
+    video_url: string | null;
+  } | null;
 }
 
 interface SeanceType {
@@ -142,7 +148,7 @@ export default function SeanceType() {
 
       if (seancesError) throw seancesError;
 
-      // Fetch exercices for each seance
+      // Fetch exercices for each seance with exercice details
       const seancesWithDetails = await Promise.all(
         (seancesData || []).map(async (seance) => {
           const { data: exercicesData } = await supabase
@@ -150,6 +156,21 @@ export default function SeanceType() {
             .select("*")
             .eq("seance_type_id", seance.id)
             .order("ordre");
+
+          // Fetch exercice details for each seance_exercice
+          const exercicesWithDetails = await Promise.all(
+            (exercicesData || []).map(async (ex) => {
+              if (ex.exercice_id) {
+                const { data: exerciceDetail } = await supabase
+                  .from("exercices")
+                  .select("id, title, thumbnail_url, video_url")
+                  .eq("id", ex.exercice_id)
+                  .maybeSingle();
+                return { ...ex, exercice: exerciceDetail };
+              }
+              return { ...ex, exercice: null };
+            })
+          );
 
           const { count: likesCount } = await supabase
             .from("seance_likes")
@@ -173,7 +194,7 @@ export default function SeanceType() {
             pathologies: seance.pathologies || [],
             objectifs_principaux: seance.objectifs_principaux || [],
             objectifs_secondaires: seance.objectifs_secondaires || [],
-            exercices: exercicesData || [],
+            exercices: exercicesWithDetails,
             likes_count: likesCount || 0,
             comments_count: commentsCount || 0,
             user_liked: !!userLike
@@ -484,30 +505,71 @@ export default function SeanceType() {
                             )}
 
                             {/* Exercices */}
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground font-medium">
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium">
                                 Exercices ({seance.exercices?.length || 0})
                               </p>
                               {seance.exercices && seance.exercices.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                  {seance.exercices.slice(0, 5).map((ex, i) => (
-                                    <div key={ex.id} className="text-xs bg-muted/50 px-2 py-1 rounded">
-                                      <span className="font-medium">{ex.name || `Exercice ${i + 1}`}</span>
-                                      <span className="text-muted-foreground ml-1">
-                                        ({ex.series || 1}x
-                                        {ex.repetitions ? ` ${ex.repetitions} reps` : ""}
-                                        {ex.duration_seconds ? ` ${ex.duration_seconds}s` : ""})
-                                      </span>
-                                    </div>
-                                  ))}
-                                  {seance.exercices.length > 5 && (
-                                    <span className="text-xs text-muted-foreground">
-                                      +{seance.exercices.length - 5} autres
-                                    </span>
-                                  )}
+                                <div className="space-y-2">
+                                  {seance.exercices.map((ex, i) => {
+                                    const thumbnailUrl = ex.exercice?.thumbnail_url || null;
+                                    const exerciceName = ex.exercice?.title || ex.name || `Exercice ${i + 1}`;
+                                    
+                                    return (
+                                      <div 
+                                        key={ex.id} 
+                                        className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg border border-border/50"
+                                      >
+                                        {/* Thumbnail */}
+                                        <div className="w-16 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                                          {thumbnailUrl ? (
+                                            <img 
+                                              src={thumbnailUrl} 
+                                              alt={exerciceName}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                              <Calendar className="w-5 h-5" />
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Exercise info */}
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-sm truncate">{exerciceName}</p>
+                                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span>{ex.series || 1} série{(ex.series || 1) > 1 ? "s" : ""}</span>
+                                            {ex.repetitions && (
+                                              <>
+                                                <span>•</span>
+                                                <span>{ex.repetitions} reps</span>
+                                              </>
+                                            )}
+                                            {ex.duration_seconds && (
+                                              <>
+                                                <span>•</span>
+                                                <span>{ex.duration_seconds}s</span>
+                                              </>
+                                            )}
+                                          </div>
+                                          {ex.description && (
+                                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                              {ex.description}
+                                            </p>
+                                          )}
+                                        </div>
+
+                                        {/* Order badge */}
+                                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                                          #{i + 1}
+                                        </Badge>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               ) : (
-                                <p className="text-xs text-muted-foreground">Aucun exercice</p>
+                                <p className="text-sm text-muted-foreground">Aucun exercice</p>
                               )}
                             </div>
 
