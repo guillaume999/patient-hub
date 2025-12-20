@@ -125,6 +125,7 @@ export default function Admin() {
   const [seanceSearch, setSeanceSearch] = useState("");
   const [traitementSearch, setTraitementSearch] = useState("");
   const [exerciceSearch, setExerciceSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("users");
   const [loading, setLoading] = useState(true);
   
   // Admin role confirmation dialog state
@@ -725,7 +726,7 @@ export default function Admin() {
           </Card>
         </div>
 
-        <Tabs defaultValue="users" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
