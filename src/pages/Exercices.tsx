@@ -29,6 +29,7 @@ interface Exercice {
   author_name: string | null;
   user_id: string;
   created_at: string;
+  updated_at: string;
 }
 
 type FilterType = "mine" | "platform" | "shared";
@@ -131,12 +132,26 @@ export default function Exercices() {
     );
   };
 
-  // Get the shared copy status for an exercise
-  const getSharedCopyStatus = (exerciceId: string) => {
+  // Get the shared copy info for an exercise (status and created_at)
+  const getSharedCopyInfo = (exerciceId: string) => {
     const copy = exercices.find(
       (e) => e.original_id === exerciceId && e.user_id === user?.id && (e.status === "pending" || e.status === "shared")
     );
-    return copy?.status || null;
+    return copy ? { status: copy.status, created_at: copy.created_at } : null;
+  };
+
+  // Check if the shared copy is on the platform
+  const isSharedCopyOnPlatform = (exerciceId: string) => {
+    const copy = exercices.find(
+      (e) => e.original_id === exerciceId && e.user_id === user?.id && e.status === "shared"
+    );
+    return copy ? featuredExerciceIds.includes(copy.id) : false;
+  };
+
+  // Get the shared copy status for an exercise (backward compatibility)
+  const getSharedCopyStatus = (exerciceId: string) => {
+    const info = getSharedCopyInfo(exerciceId);
+    return info?.status || null;
   };
 
   const fetchData = async () => {
@@ -591,9 +606,33 @@ export default function Exercices() {
     
     // For user's own exercises in "mine" filter, check if there's a shared copy
     if (filter === "mine" && exercice.user_id === user?.id && exercice.status === "draft") {
-      const sharedCopyStatus = getSharedCopyStatus(exercice.id);
+      const sharedCopyInfo = getSharedCopyInfo(exercice.id);
       
-      if (sharedCopyStatus === "pending") {
+      // Check if original was modified after the shared copy was created
+      const wasModifiedAfterShare = sharedCopyInfo && 
+        new Date(exercice.updated_at) > new Date(sharedCopyInfo.created_at);
+      
+      if (sharedCopyInfo?.status === "pending") {
+        // If modified after share, show both the modification warning and cancel button
+        if (wasModifiedAfterShare) {
+          return (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-orange-400 border-orange-400/30">Modifié</Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleShare(exercice);
+                }}
+                className="h-7 text-xs border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Annuler
+              </Button>
+            </div>
+          );
+        }
         return (
           <Button
             variant="outline"
@@ -610,7 +649,34 @@ export default function Exercices() {
         );
       }
       
-      if (sharedCopyStatus === "shared") {
+      if (sharedCopyInfo?.status === "shared") {
+        // If modified after share, don't show the badge (versions are different)
+        if (wasModifiedAfterShare) {
+          // Show share button to allow re-sharing the updated version
+          if (!exercice.is_copy && userCanShare) {
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleShare(exercice);
+                }}
+                className="h-7 text-xs"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                Repartager
+              </Button>
+            );
+          }
+          return null;
+        }
+        
+        // Check if the shared copy is on the platform
+        if (isSharedCopyOnPlatform(exercice.id)) {
+          return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Plateforme</Badge>;
+        }
+        
         return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Partagé</Badge>;
       }
       
@@ -850,8 +916,8 @@ export default function Exercices() {
                             </Button>
                           )}
 
-                          {/* Copy */}
-                          {exercice.user_id !== user?.id && (
+                          {/* Copy - show for non-owners, and for admins on platform exercises */}
+                          {(exercice.user_id !== user?.id || (isAdmin && featuredExerciceIds.includes(exercice.id))) && (
                             <Button
                               variant="ghost"
                               size="icon"
