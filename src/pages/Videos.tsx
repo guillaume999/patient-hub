@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Video, Search, Play, X, MoreVertical, Pencil, Trash2, FileVideo, Dumbbell, Calendar, Upload, Loader2 } from "lucide-react";
+import { Video, Search, Play, X, MoreVertical, Pencil, Trash2, FileVideo, Dumbbell, Calendar, Upload, Loader2, HardDrive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -20,8 +20,8 @@ interface ExerciceWithVideo {
   author_name: string | null;
 }
 
-interface VideoSize {
-  [key: string]: string;
+interface VideoSizeBytes {
+  [key: string]: number;
 }
 
 type DeleteMode = 'video-only' | 'video-and-exercises' | 'video-and-seances';
@@ -34,7 +34,7 @@ export default function Videos() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [videoToPlay, setVideoToPlay] = useState<string | null>(null);
-  const [videoSizes, setVideoSizes] = useState<VideoSize>({});
+  const [videoSizesBytes, setVideoSizesBytes] = useState<VideoSizeBytes>({});
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; video: ExerciceWithVideo | null; mode: DeleteMode }>({ open: false, video: null, mode: 'video-only' });
   const [deleting, setDeleting] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; video: ExerciceWithVideo | null }>({ open: false, video: null });
@@ -93,8 +93,7 @@ export default function Videos() {
       const contentLength = response.headers.get('content-length');
       if (contentLength) {
         const sizeInBytes = parseInt(contentLength, 10);
-        const sizeFormatted = formatFileSize(sizeInBytes);
-        setVideoSizes((prev) => ({ ...prev, [videoId]: sizeFormatted }));
+        setVideoSizesBytes((prev) => ({ ...prev, [videoId]: sizeInBytes }));
       }
     } catch {
       // Silently fail for size fetch
@@ -108,6 +107,10 @@ export default function Videos() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
+
+  // Calculate total storage used
+  const totalStorageBytes = Object.values(videoSizesBytes).reduce((acc, size) => acc + size, 0);
+  const uniqueVideoUrls = new Set(videos.map(v => v.video_url)).size;
 
   const getStoragePathFromUrl = (url: string): string | null => {
     try {
@@ -284,25 +287,41 @@ export default function Videos() {
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-purple-500/10">
-                  <Video className="w-6 h-6 text-purple-500" />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-purple-500/10">
+                    <Video className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <CardTitle className="text-2xl font-display">
+                    Ma Vidéothèque
+                  </CardTitle>
                 </div>
-                <CardTitle className="text-2xl font-display">
-                  Ma Vidéothèque
-                </CardTitle>
+
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher une vidéo..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
 
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher une vidéo..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              {/* Stats summary */}
+              {!loading && (
+                <div className="flex flex-wrap gap-4 pt-2 border-t">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+                    <FileVideo className="w-4 h-4 text-purple-500" />
+                    <span className="text-sm font-medium">{uniqueVideoUrls} vidéo{uniqueVideoUrls > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+                    <HardDrive className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium">{formatFileSize(totalStorageBytes)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardHeader>
 
@@ -362,10 +381,10 @@ export default function Videos() {
                     </div>
 
                     {/* Size badge */}
-                    {videoSizes[video.id] && (
+                    {videoSizesBytes[video.id] && (
                       <div className="absolute top-2 left-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-white text-xs flex items-center gap-1">
                         <FileVideo className="w-3 h-3" />
-                        {videoSizes[video.id]}
+                        {formatFileSize(videoSizesBytes[video.id])}
                       </div>
                     )}
 
