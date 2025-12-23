@@ -5,20 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Calendar, FileText, Clock, AlertCircle, Play, CheckCircle } from "lucide-react";
+import { Loader2, Calendar, FileText, Clock, AlertCircle, CheckCircle } from "lucide-react";
 
-interface TraitementSeance {
+interface SeanceType {
   id: string;
-  seance_type_id: string;
-  ordre: number;
-  seance_types?: {
-    id: string;
-    pathologie: string;
-    objectif_principal: string;
-    pathologies?: string[];
-    objectifs_principaux?: string[];
-    objectifs_secondaires?: string[];
-  } | null;
+  pathologie: string;
+  objectif_principal: string;
+  pathologies?: string[];
+  objectifs_principaux?: string[];
+  objectifs_secondaires?: string[];
 }
 
 interface SeanceExercice {
@@ -41,13 +36,10 @@ interface SeanceExercice {
 
 interface AccessData {
   id: string;
-  traitement_id: string;
+  seance_type_id: string;
   patient_id: string;
   expires_at: string;
-  traitement?: {
-    pathologie: string;
-    description: string | null;
-  };
+  seance?: SeanceType;
   patient?: {
     name: string;
   };
@@ -61,9 +53,7 @@ export default function PatientSessionView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accessData, setAccessData] = useState<AccessData | null>(null);
-  const [seances, setSeances] = useState<TraitementSeance[]>([]);
-  const [expandedSeance, setExpandedSeance] = useState<string | null>(null);
-  const [seanceExercices, setSeanceExercices] = useState<Record<string, SeanceExercice[]>>({});
+  const [seanceExercices, setSeanceExercices] = useState<SeanceExercice[]>([]);
   const [completedExercices, setCompletedExercices] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -87,7 +77,7 @@ export default function PatientSessionView() {
         .from("patient_session_access")
         .select(`
           id,
-          traitement_id,
+          seance_type_id,
           patient_id,
           expires_at
         `)
@@ -103,11 +93,11 @@ export default function PatientSessionView() {
         return;
       }
 
-      // Fetch traitement details
-      const { data: traitementData } = await supabase
-        .from("traitement_types")
-        .select("pathologie, description")
-        .eq("id", accessResult.traitement_id)
+      // Fetch seance details
+      const { data: seanceData } = await supabase
+        .from("seance_types")
+        .select("id, pathologie, objectif_principal, pathologies, objectifs_principaux, objectifs_secondaires")
+        .eq("id", accessResult.seance_type_id)
         .maybeSingle();
 
       // Fetch patient name
@@ -119,63 +109,34 @@ export default function PatientSessionView() {
 
       setAccessData({
         ...accessResult,
-        traitement: traitementData || undefined,
+        seance: seanceData || undefined,
         patient: patientData || undefined,
       });
 
-      // Fetch seances for this traitement
-      const { data: seancesData } = await supabase
-        .from("traitement_seances")
+      // Fetch exercices for this seance
+      const { data: exercicesData } = await supabase
+        .from("seance_exercices")
         .select(`
           id,
-          seance_type_id,
+          name,
+          description,
+          duration_seconds,
+          repetitions,
+          series,
           ordre,
-          seance_types(id, pathologie, objectif_principal, pathologies, objectifs_principaux, objectifs_secondaires)
+          exercice_id,
+          exercices(id, title, description, thumbnail_url, video_url)
         `)
-        .eq("traitement_type_id", accessResult.traitement_id)
+        .eq("seance_type_id", accessResult.seance_type_id)
         .order("ordre", { ascending: true });
 
-      setSeances(seancesData || []);
+      setSeanceExercices(exercicesData || []);
 
     } catch (err) {
       console.error("Error validating code:", err);
       setError("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadSeanceExercices = async (seanceTypeId: string) => {
-    if (seanceExercices[seanceTypeId]) return;
-
-    const { data } = await supabase
-      .from("seance_exercices")
-      .select(`
-        id,
-        name,
-        description,
-        duration_seconds,
-        repetitions,
-        series,
-        ordre,
-        exercice_id,
-        exercices(id, title, description, thumbnail_url, video_url)
-      `)
-      .eq("seance_type_id", seanceTypeId)
-      .order("ordre", { ascending: true });
-
-    setSeanceExercices(prev => ({
-      ...prev,
-      [seanceTypeId]: data || []
-    }));
-  };
-
-  const toggleSeance = (seanceTypeId: string) => {
-    if (expandedSeance === seanceTypeId) {
-      setExpandedSeance(null);
-    } else {
-      setExpandedSeance(seanceTypeId);
-      loadSeanceExercices(seanceTypeId);
     }
   };
 
@@ -210,6 +171,14 @@ export default function PatientSessionView() {
     return `${hours}h ${mins}m restantes`;
   };
 
+  const getSeanceDisplay = () => {
+    if (!accessData?.seance) return "Séance";
+    const pathologies = accessData.seance.pathologies?.length 
+      ? accessData.seance.pathologies 
+      : [accessData.seance.pathologie];
+    return pathologies.join(", ");
+  };
+
   // Login form
   if (!accessData) {
     return (
@@ -221,7 +190,7 @@ export default function PatientSessionView() {
             </div>
             <CardTitle className="text-2xl">Accès Patient</CardTitle>
             <p className="text-muted-foreground mt-2">
-              Entrez votre code d'accès temporaire pour voir votre programme
+              Entrez votre code d'accès temporaire pour voir votre séance
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -253,7 +222,7 @@ export default function PatientSessionView() {
                   Vérification...
                 </>
               ) : (
-                "Accéder à mon programme"
+                "Accéder à ma séance"
               )}
             </Button>
           </CardContent>
@@ -272,141 +241,91 @@ export default function PatientSessionView() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold">{accessData.patient?.name || "Patient"}</h1>
-                <p className="text-muted-foreground">{accessData.traitement?.pathologie}</p>
+                <p className="text-muted-foreground">{getSeanceDisplay()}</p>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 {getTimeRemaining()}
               </div>
             </div>
-            {accessData.traitement?.description && (
-              <p className="text-sm text-muted-foreground">{accessData.traitement.description}</p>
+            
+            {/* Objectifs */}
+            {accessData.seance?.objectifs_principaux && accessData.seance.objectifs_principaux.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Objectifs</p>
+                <div className="flex flex-wrap gap-1">
+                  {accessData.seance.objectifs_principaux.map((obj, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">{obj}</Badge>
+                  ))}
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Seances list */}
+        {/* Exercices list */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Vos séances ({seances.length})
+            <FileText className="w-5 h-5" />
+            Exercices ({seanceExercices.length})
           </h2>
 
-          {seances.length === 0 ? (
+          {seanceExercices.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                Aucune séance dans ce programme
+                Aucun exercice dans cette séance
               </CardContent>
             </Card>
           ) : (
-            seances.map((seance, index) => (
-              <Card 
-                key={seance.id} 
-                className={`cursor-pointer transition-all ${expandedSeance === seance.seance_type_id ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => toggleSeance(seance.seance_type_id)}
-              >
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="font-bold text-primary">{index + 1}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap gap-1 mb-1">
-                        {(seance.seance_types?.pathologies?.length 
-                          ? seance.seance_types.pathologies 
-                          : [seance.seance_types?.pathologie]
-                        ).map((p, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">{p}</Badge>
-                        ))}
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {seance.seance_types?.objectif_principal}
-                      </p>
-                    </div>
-                    <Play className={`w-5 h-5 transition-transform ${expandedSeance === seance.seance_type_id ? 'rotate-90' : ''}`} />
-                  </div>
-
-                  {/* Expanded content */}
-                  {expandedSeance === seance.seance_type_id && (
-                    <div className="mt-4 pt-4 border-t space-y-4" onClick={(e) => e.stopPropagation()}>
-                      {/* Objectifs */}
-                      {seance.seance_types?.objectifs_principaux && seance.seance_types.objectifs_principaux.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-2">Objectifs</p>
-                          <div className="flex flex-wrap gap-1">
-                            {seance.seance_types.objectifs_principaux.map((obj, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">{obj}</Badge>
-                            ))}
+            <div className="space-y-2">
+              {seanceExercices.map((exercice) => {
+                const isCompleted = completedExercices.has(exercice.id);
+                return (
+                  <Card 
+                    key={exercice.id}
+                    className={`transition-all ${isCompleted ? 'bg-green-500/10 border-green-500/30' : ''}`}
+                  >
+                    <CardContent className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant={isCompleted ? "default" : "outline"}
+                          size="icon"
+                          className={`flex-shrink-0 ${isCompleted ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                          onClick={() => toggleExerciceComplete(exercice.id)}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </Button>
+                        
+                        {exercice.exercices?.thumbnail_url && (
+                          <img 
+                            src={exercice.exercices.thumbnail_url} 
+                            alt="" 
+                            className="w-12 h-12 rounded object-cover flex-shrink-0"
+                          />
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                            {exercice.exercices?.title || exercice.name || "Exercice"}
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            {exercice.series && (
+                              <span>{exercice.series} séries</span>
+                            )}
+                            {exercice.repetitions && (
+                              <span>× {exercice.repetitions} reps</span>
+                            )}
+                            {exercice.duration_seconds && (
+                              <span>{formatDuration(exercice.duration_seconds)}</span>
+                            )}
                           </div>
                         </div>
-                      )}
-
-                      {/* Exercices */}
-                      <div>
-                        <p className="text-sm font-medium mb-2">
-                          Exercices ({seanceExercices[seance.seance_type_id]?.length || 0})
-                        </p>
-                        {!seanceExercices[seance.seance_type_id] ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          </div>
-                        ) : seanceExercices[seance.seance_type_id].length === 0 ? (
-                          <p className="text-sm text-muted-foreground">Aucun exercice</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {seanceExercices[seance.seance_type_id].map((exercice) => {
-                              const isCompleted = completedExercices.has(exercice.id);
-                              return (
-                                <div 
-                                  key={exercice.id}
-                                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                                    isCompleted ? 'bg-green-500/10 border-green-500/30' : 'bg-muted/30'
-                                  }`}
-                                >
-                                  <Button
-                                    variant={isCompleted ? "default" : "outline"}
-                                    size="icon"
-                                    className={`flex-shrink-0 ${isCompleted ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                                    onClick={() => toggleExerciceComplete(exercice.id)}
-                                  >
-                                    <CheckCircle className="w-4 h-4" />
-                                  </Button>
-                                  
-                                  {exercice.exercices?.thumbnail_url && (
-                                    <img 
-                                      src={exercice.exercices.thumbnail_url} 
-                                      alt="" 
-                                      className="w-12 h-12 rounded object-cover flex-shrink-0"
-                                    />
-                                  )}
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <p className={`font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                                      {exercice.exercices?.title || exercice.name || "Exercice"}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                      {exercice.series && (
-                                        <span>{exercice.series} séries</span>
-                                      )}
-                                      {exercice.repetitions && (
-                                        <span>× {exercice.repetitions} reps</span>
-                                      )}
-                                      {exercice.duration_seconds && (
-                                        <span>{formatDuration(exercice.duration_seconds)}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

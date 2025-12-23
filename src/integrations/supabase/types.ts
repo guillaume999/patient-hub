@@ -441,7 +441,7 @@ export type Database = {
           expires_at: string
           id: string
           patient_id: string
-          traitement_id: string
+          seance_type_id: string
           user_id: string
         }
         Insert: {
@@ -450,7 +450,7 @@ export type Database = {
           expires_at: string
           id?: string
           patient_id: string
-          traitement_id: string
+          seance_type_id: string
           user_id: string
         }
         Update: {
@@ -459,7 +459,7 @@ export type Database = {
           expires_at?: string
           id?: string
           patient_id?: string
-          traitement_id?: string
+          seance_type_id?: string
           user_id?: string
         }
         Relationships: [
@@ -471,10 +471,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "patient_session_access_traitement_id_fkey"
-            columns: ["traitement_id"]
+            foreignKeyName: "patient_session_access_seance_type_id_fkey"
+            columns: ["seance_type_id"]
             isOneToOne: false
-            referencedRelation: "traitement_types"
+            referencedRelation: "seance_types"
             referencedColumns: ["id"]
           },
         ]
