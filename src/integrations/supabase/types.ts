@@ -807,6 +807,7 @@ export type Database = {
           description: string | null
           id: string
           is_copy: boolean | null
+          is_hidden_from_list: boolean | null
           is_shared: boolean
           is_validated: boolean | null
           original_id: string | null
@@ -820,6 +821,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_copy?: boolean | null
+          is_hidden_from_list?: boolean | null
           is_shared?: boolean
           is_validated?: boolean | null
           original_id?: string | null
@@ -833,6 +835,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_copy?: boolean | null
+          is_hidden_from_list?: boolean | null
           is_shared?: boolean
           is_validated?: boolean | null
           original_id?: string | null

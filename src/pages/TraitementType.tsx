@@ -98,7 +98,7 @@ export default function TraitementType() {
 
     // Apply filter type
     if (filter === "mine") {
-      result = result.filter((t) => t.user_id === user?.id);
+      result = result.filter((t) => t.user_id === user?.id && !(t as any).is_hidden_from_list);
     } else if (filter === "shared") {
       result = result.filter((t) => 
         t.is_shared && 
@@ -126,7 +126,7 @@ export default function TraitementType() {
       .filter((t) => t.is_copy && t.user_id === user?.id && t.original_id)
       .map((t) => t.original_id);
 
-    const mine = traitements.filter((t) => t.user_id === user?.id).length;
+    const mine = traitements.filter((t) => t.user_id === user?.id && !(t as any).is_hidden_from_list).length;
     const shared = traitements.filter((t) => 
       t.is_shared && 
       t.is_validated &&

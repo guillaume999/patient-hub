@@ -381,6 +381,7 @@ export default function PatientDetail() {
           onImportTraitement={() => setImportTraitementOpen(true)}
           onCreateTraitement={handleCreateTraitement}
           onRemoveTraitement={handleRemoveTraitement}
+          onTraitementChanged={handleSelectTraitement}
         />
 
         <div className="mt-6">
