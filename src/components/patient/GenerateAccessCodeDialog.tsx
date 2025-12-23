@@ -11,7 +11,8 @@ import { Copy, Loader2, Clock, ExternalLink, Check } from "lucide-react";
 interface GenerateAccessCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  traitementId: string;
+  seanceTypeId: string;
+  seanceName: string;
   patientId: string;
   patientName: string;
 }
@@ -28,7 +29,8 @@ function generateCode(): string {
 export function GenerateAccessCodeDialog({
   open,
   onOpenChange,
-  traitementId,
+  seanceTypeId,
+  seanceName,
   patientId,
   patientName,
 }: GenerateAccessCodeDialogProps) {
@@ -51,7 +53,7 @@ export function GenerateAccessCodeDialog({
       const { error } = await supabase
         .from("patient_session_access")
         .insert({
-          traitement_id: traitementId,
+          seance_type_id: seanceTypeId,
           patient_id: patientId,
           access_code: code,
           expires_at: expires.toISOString(),
@@ -117,7 +119,7 @@ export function GenerateAccessCodeDialog({
 
         <div className="space-y-6 py-4">
           <p className="text-sm text-muted-foreground">
-            Générez un code d'accès temporaire pour que <strong>{patientName}</strong> puisse consulter son programme d'exercices.
+            Générez un code d'accès temporaire pour que <strong>{patientName}</strong> puisse consulter la séance <strong>{seanceName}</strong>.
           </p>
 
           {!generatedCode ? (

@@ -75,6 +75,7 @@ export function PatientTraitementCard({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingTraitement, setEditingTraitement] = useState<any>(null);
   const [accessCodeDialogOpen, setAccessCodeDialogOpen] = useState(false);
+  const [selectedSeanceForAccess, setSelectedSeanceForAccess] = useState<{id: string; name: string} | null>(null);
 
   useEffect(() => {
     if (activeTraitementId) {
@@ -316,13 +317,30 @@ export function PatientTraitementCard({
                           {traitement.seances.map((seance, i) => (
                             <div 
                               key={seance.id} 
-                              className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg border border-border/50"
+                              className="flex items-center justify-between gap-3 p-2 bg-muted/30 rounded-lg border border-border/50"
                             >
-                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-bold text-primary">{i + 1}</span>
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-bold text-primary">{i + 1}</span>
+                                </div>
+                                <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <span className="text-sm truncate">{getSeanceDisplay(seance)}</span>
                               </div>
-                              <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <span className="text-sm">{getSeanceDisplay(seance)}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="flex-shrink-0 h-8 w-8"
+                                title="Partager cette séance avec le patient"
+                                onClick={() => {
+                                  setSelectedSeanceForAccess({
+                                    id: seance.seance_type_id,
+                                    name: getSeanceDisplay(seance)
+                                  });
+                                  setAccessCodeDialogOpen(true);
+                                }}
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -349,17 +367,6 @@ export function PatientTraitementCard({
                           Modifier et sauvegarder
                         </Button>
                       </div>
-                      
-                      {/* Share with patient button */}
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        onClick={() => setAccessCodeDialogOpen(true)}
-                        className="w-full gap-2"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        Générer un accès temporaire pour le patient
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -380,11 +387,15 @@ export function PatientTraitementCard({
         onSuccess={handleEditSuccess}
       />
 
-      {traitement && (
+      {selectedSeanceForAccess && (
         <GenerateAccessCodeDialog
           open={accessCodeDialogOpen}
-          onOpenChange={setAccessCodeDialogOpen}
-          traitementId={traitement.id}
+          onOpenChange={(open) => {
+            setAccessCodeDialogOpen(open);
+            if (!open) setSelectedSeanceForAccess(null);
+          }}
+          seanceTypeId={selectedSeanceForAccess.id}
+          seanceName={selectedSeanceForAccess.name}
           patientId={patientId}
           patientName={patientName}
         />
