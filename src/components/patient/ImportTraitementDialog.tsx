@@ -7,13 +7,16 @@ import { useAuth } from "@/lib/auth";
 import { Loader2, Search, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface TraitementType {
   id: string;
   pathologie: string;
+  description: string | null;
   author_name: string | null;
   is_shared: boolean;
   is_validated: boolean | null;
+  user_id: string;
 }
 
 interface ImportTraitementDialogProps {
@@ -30,19 +33,32 @@ export function ImportTraitementDialog({
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [traitements, setTraitements] = useState<TraitementType[]>([]);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && user) {
       fetchTraitements();
+      fetchUserPseudo();
     }
   }, [open, user]);
+
+  const fetchUserPseudo = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("pseudo")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setUserPseudo(data?.pseudo || null);
+  };
 
   const fetchTraitements = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("traitement_types")
-      .select("id, pathologie, author_name, is_shared, is_validated")
+      .select("id, pathologie, description, author_name, is_shared, is_validated, user_id")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -56,11 +72,80 @@ export function ImportTraitementDialog({
   );
 
   const myTraitements = filteredTraitements.filter(
-    (t) => !t.is_shared || (t.is_shared && t.author_name)
+    (t) => t.user_id === user?.id
   );
   const sharedTraitements = filteredTraitements.filter(
-    (t) => t.is_shared && t.is_validated
+    (t) => t.is_shared && t.is_validated && t.user_id !== user?.id
   );
+
+  const handleSelectTraitement = async (traitement: TraitementType) => {
+    if (!user) return;
+    setCopying(true);
+
+    try {
+      // Create a hidden copy of the traitement for the patient
+      const { data: newTraitement, error: traitementError } = await supabase
+        .from("traitement_types")
+        .insert({
+          user_id: user.id,
+          pathologie: traitement.pathologie,
+          description: traitement.description,
+          author_name: userPseudo || traitement.author_name,
+          is_shared: false,
+          is_copy: true,
+          is_hidden_from_list: true, // Hidden from traitement list
+          original_id: traitement.id
+        })
+        .select()
+        .single();
+
+      if (traitementError) throw traitementError;
+
+      // Copy tests
+      const { data: testsData } = await supabase
+        .from("traitement_tests")
+        .select("*")
+        .eq("traitement_type_id", traitement.id)
+        .order("ordre", { ascending: true });
+
+      if (testsData && testsData.length > 0) {
+        for (const test of testsData) {
+          await supabase.from("traitement_tests").insert({
+            traitement_type_id: newTraitement.id,
+            description: test.description,
+            exercice_id: test.exercice_id,
+            ordre: test.ordre
+          });
+        }
+      }
+
+      // Copy seances
+      const { data: seancesData } = await supabase
+        .from("traitement_seances")
+        .select("*")
+        .eq("traitement_type_id", traitement.id)
+        .order("ordre", { ascending: true });
+
+      if (seancesData && seancesData.length > 0) {
+        for (const seance of seancesData) {
+          await supabase.from("traitement_seances").insert({
+            traitement_type_id: newTraitement.id,
+            seance_type_id: seance.seance_type_id,
+            ordre: seance.ordre
+          });
+        }
+      }
+
+      toast.success("Traitement importé pour ce patient");
+      onSelect(newTraitement.id);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error copying traitement:", error);
+      toast.error("Erreur lors de l'importation du traitement");
+    } finally {
+      setCopying(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,9 +164,10 @@ export function ImportTraitementDialog({
           />
         </div>
 
-        {loading ? (
+        {loading || copying ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin" />
+            {copying && <span className="ml-2 text-sm text-muted-foreground">Importation en cours...</span>}
           </div>
         ) : (
           <ScrollArea className="h-[400px]">
@@ -97,10 +183,8 @@ export function ImportTraitementDialog({
                         key={t.id}
                         variant="outline"
                         className="w-full justify-start h-auto py-3"
-                        onClick={() => {
-                          onSelect(t.id);
-                          onOpenChange(false);
-                        }}
+                        onClick={() => handleSelectTraitement(t)}
+                        disabled={copying}
                       >
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{t.pathologie}</span>
@@ -127,10 +211,8 @@ export function ImportTraitementDialog({
                         key={t.id}
                         variant="outline"
                         className="w-full justify-start h-auto py-3"
-                        onClick={() => {
-                          onSelect(t.id);
-                          onOpenChange(false);
-                        }}
+                        onClick={() => handleSelectTraitement(t)}
+                        disabled={copying}
                       >
                         <div className="flex flex-col items-start">
                           <div className="flex items-center gap-2">

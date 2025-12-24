@@ -697,6 +697,7 @@ export function PatientTraitementCard({
         onOpenChange={setEditDialogOpen}
         traitement={editingTraitement}
         onSuccess={handleEditSuccess}
+        isHiddenFromList={true}
       />
 
       {selectedSeanceForAccess && (
