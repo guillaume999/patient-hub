@@ -6,7 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Plus, Printer, Trash2, FileText, Edit, Save, X, BookTemplate, Star } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -47,6 +55,10 @@ export default function PatientCertificats() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [printingCertificat, setPrintingCertificat] = useState<Certificat | null>(null);
+  const [includeDate, setIncludeDate] = useState(true);
+  const [includePatientName, setIncludePatientName] = useState(true);
 
   useEffect(() => {
     if (patientId && user) {
@@ -225,15 +237,29 @@ export default function PatientCertificats() {
     }
   };
 
-  const handlePrint = (certificat: Certificat) => {
+  const openPrintDialog = (certificat: Certificat) => {
+    setPrintingCertificat(certificat);
+    setPrintDialogOpen(true);
+  };
+
+  const handlePrint = () => {
+    if (!printingCertificat) return;
+    
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+
+    const patientSection = includePatientName 
+      ? `<div class="patient-info">Patient : ${patientName}</div>` 
+      : "";
+    const dateSection = includeDate 
+      ? `<div class="date">Date : ${new Date(printingCertificat.created_at).toLocaleDateString("fr-FR")}</div>` 
+      : "";
 
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${certificat.title}</title>
+          <title>${printingCertificat.title}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -269,10 +295,10 @@ export default function PatientCertificats() {
           </style>
         </head>
         <body>
-          <h1>${certificat.title}</h1>
-          <div class="patient-info">Patient : ${patientName}</div>
-          <div class="content">${certificat.content}</div>
-          <div class="date">Date : ${new Date(certificat.created_at).toLocaleDateString("fr-FR")}</div>
+          <h1>${printingCertificat.title}</h1>
+          ${patientSection}
+          <div class="content">${printingCertificat.content}</div>
+          ${dateSection}
           <div class="signature">Signature :</div>
         </body>
       </html>
@@ -281,6 +307,8 @@ export default function PatientCertificats() {
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.print();
+    setPrintDialogOpen(false);
+    setPrintingCertificat(null);
   };
 
   const userModels = models.filter((m) => !m.is_platform && m.user_id === user?.id);
@@ -474,7 +502,7 @@ export default function PatientCertificats() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => handlePrint(certificat)}
+                          onClick={() => openPrintDialog(certificat)}
                           title="Imprimer"
                         >
                           <Printer className="w-4 h-4" />
@@ -500,6 +528,46 @@ export default function PatientCertificats() {
             ))
           )}
         </div>
+
+        {/* Dialogue d'options d'impression */}
+        <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Options d'impression</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="includePatientName"
+                  checked={includePatientName}
+                  onCheckedChange={(checked) => setIncludePatientName(checked === true)}
+                />
+                <Label htmlFor="includePatientName" className="cursor-pointer">
+                  Inclure le nom du patient
+                </Label>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="includeDate"
+                  checked={includeDate}
+                  onCheckedChange={(checked) => setIncludeDate(checked === true)}
+                />
+                <Label htmlFor="includeDate" className="cursor-pointer">
+                  Inclure la date
+                </Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handlePrint}>
+                <Printer className="w-4 h-4 mr-2" />
+                Imprimer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
