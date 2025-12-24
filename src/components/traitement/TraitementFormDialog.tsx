@@ -56,9 +56,10 @@ interface TraitementFormDialogProps {
   onOpenChange: (open: boolean) => void;
   traitement?: TraitementFormData | null;
   onSuccess: () => void;
+  isHiddenFromList?: boolean;
 }
 
-export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess }: TraitementFormDialogProps) {
+export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess, isHiddenFromList = false }: TraitementFormDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
@@ -256,7 +257,8 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
             description,
             author_name: userPseudo,
             is_shared: false,
-            is_copy: false
+            is_copy: false,
+            is_hidden_from_list: isHiddenFromList
           })
           .select()
           .single();
