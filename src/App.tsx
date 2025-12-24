@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Patients from "./pages/Patients";
 import PatientDetail from "./pages/PatientDetail";
 import PatientBilanInitial from "./pages/PatientBilanInitial";
+import PatientBilanIntermediaire from "./pages/PatientBilanIntermediaire";
 import PatientCertificats from "./pages/PatientCertificats";
 import IADiagnostic from "./pages/IADiagnostic";
 import Notes from "./pages/Notes";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/patients" element={<Patients />} />
             <Route path="/patients/:id" element={<PatientDetail />} />
             <Route path="/patients/:id/bilan-initial" element={<PatientBilanInitial />} />
+            <Route path="/patients/:id/bilan-intermediaire" element={<PatientBilanIntermediaire />} />
             <Route path="/patients/:id/certificats" element={<PatientCertificats />} />
             <Route path="/ia-diagnostic" element={<IADiagnostic />} />
             <Route path="/notes" element={<Notes />} />
