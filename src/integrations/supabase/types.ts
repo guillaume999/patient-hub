@@ -368,6 +368,54 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_bilans: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          patient_id: string
+          position_after_seance: number
+          traitement_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          patient_id: string
+          position_after_seance?: number
+          traitement_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          patient_id?: string
+          position_after_seance?: number
+          traitement_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_bilans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_bilans_traitement_id_fkey"
+            columns: ["traitement_id"]
+            isOneToOne: false
+            referencedRelation: "traitement_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_care_plans: {
         Row: {
           active_traitement_id: string | null
