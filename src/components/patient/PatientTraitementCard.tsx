@@ -644,7 +644,7 @@ export function PatientTraitementCard({
                             return (
                               <div 
                                 key={test.id} 
-                                className="flex items-start gap-4 p-3 bg-muted/30 rounded-xl border border-border/50"
+                                className="flex items-start gap-4 p-3 bg-muted/50 rounded-xl border border-border"
                               >
                                 {/* Order number */}
                                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -692,7 +692,7 @@ export function PatientTraitementCard({
                             return (
                               <div key={seance.id}>
                                 {/* Seance card */}
-                                <div className="bg-muted/30 rounded-lg border border-border/50 overflow-hidden">
+                                <div className="bg-muted/50 rounded-lg border border-border overflow-hidden">
                                   {/* Seance header */}
                                   <div className="flex items-center justify-between gap-3 p-3">
                                     <div 
@@ -765,7 +765,7 @@ export function PatientTraitementCard({
                                             return (
                                               <div 
                                                 key={ex.id}
-                                                className="flex items-start gap-4 p-3 bg-background/50 rounded-xl border border-border/30"
+                                                className="flex items-start gap-4 p-3 bg-card rounded-xl border border-border shadow-sm"
                                               >
                                                 {/* Order number */}
                                                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
