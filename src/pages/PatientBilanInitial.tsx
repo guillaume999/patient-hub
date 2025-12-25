@@ -10,7 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, Save, ClipboardList, User, Activity, Eye, Stethoscope, MessageSquare, Printer } from "lucide-react";
+import { ArrowLeft, Loader2, Save, ClipboardList, User, Activity, Eye, Stethoscope, MessageSquare, Printer, Plus, Trash2 } from "lucide-react";
+
+interface BilanEntry {
+  id: string;
+  zone: string;
+  observation: string;
+}
 
 interface BilanData {
   // Infos patient
@@ -43,31 +49,14 @@ interface BilanData {
   ttt_deja_suivis: string;
   projets_attentes: string;
   
-  // Bilan douleurs
-  douleur_frequence: string;
-  douleur_eva_habituelle: string;
-  douleur_eva_pire: string;
-  douleur_eva_sport: string;
-  douleur_eva_faible: string;
-  douleur_type: string;
-  douleur_sensations: string;
-  douleur_localisation: string;
-  douleur_circonstances_apparition: string;
-  douleur_eva: string;
-  douleur_soulage_aggrave: string;
+  // Bilan douleurs - tableau dynamique
+  douleurs_entries: BilanEntry[];
   
-  // Bilan morphodynamique
-  morpho_extension_flexion: string;
-  morpho_fonctionnel: string;
+  // Bilan morphodynamique - tableau dynamique
+  morphodynamique_entries: BilanEntry[];
   
-  // Bilan morphostatique
-  morpho_attitude_statique: string;
-  morpho_ceinture: string;
-  morpho_dos: string;
-  morpho_bassin: string;
-  morpho_genou: string;
-  morpho_pieds: string;
-  morpho_articulaire: string;
+  // Bilan morphostatique - tableau dynamique
+  morphostatique_entries: BilanEntry[];
   
   // Bilan cutanéo-trophique
   cutaneo_cicatrice_couleur: string;
@@ -84,6 +73,8 @@ interface BilanData {
   // Commentaires
   commentaires: string;
 }
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
 
 const defaultBilan: BilanData = {
   profession: "",
@@ -114,26 +105,9 @@ const defaultBilan: BilanData = {
   examen_complementaire: "",
   ttt_deja_suivis: "",
   projets_attentes: "",
-  douleur_frequence: "",
-  douleur_eva_habituelle: "",
-  douleur_eva_pire: "",
-  douleur_eva_sport: "",
-  douleur_eva_faible: "",
-  douleur_type: "",
-  douleur_sensations: "",
-  douleur_localisation: "",
-  douleur_circonstances_apparition: "",
-  douleur_eva: "",
-  douleur_soulage_aggrave: "",
-  morpho_extension_flexion: "",
-  morpho_fonctionnel: "",
-  morpho_attitude_statique: "",
-  morpho_ceinture: "",
-  morpho_dos: "",
-  morpho_bassin: "",
-  morpho_genou: "",
-  morpho_pieds: "",
-  morpho_articulaire: "",
+  douleurs_entries: [{ id: generateId(), zone: "", observation: "" }],
+  morphodynamique_entries: [{ id: generateId(), zone: "", observation: "" }],
+  morphostatique_entries: [{ id: generateId(), zone: "", observation: "" }],
   cutaneo_cicatrice_couleur: "",
   cutaneo_trophiques: "",
   cutaneo_adherences_chaleur: "",
@@ -230,6 +204,37 @@ export default function PatientBilanInitial() {
 
   const handleChange = (field: keyof BilanData, value: string) => {
     setBilan(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEntryChange = (
+    field: 'douleurs_entries' | 'morphodynamique_entries' | 'morphostatique_entries',
+    id: string,
+    key: 'zone' | 'observation',
+    value: string
+  ) => {
+    setBilan(prev => ({
+      ...prev,
+      [field]: prev[field].map(entry =>
+        entry.id === id ? { ...entry, [key]: value } : entry
+      )
+    }));
+  };
+
+  const addEntry = (field: 'douleurs_entries' | 'morphodynamique_entries' | 'morphostatique_entries') => {
+    setBilan(prev => ({
+      ...prev,
+      [field]: [...prev[field], { id: generateId(), zone: "", observation: "" }]
+    }));
+  };
+
+  const removeEntry = (
+    field: 'douleurs_entries' | 'morphodynamique_entries' | 'morphostatique_entries',
+    id: string
+  ) => {
+    setBilan(prev => ({
+      ...prev,
+      [field]: prev[field].filter(entry => entry.id !== id)
+    }));
   };
 
   const handlePrint = () => {
@@ -615,123 +620,55 @@ export default function PatientBilanInitial() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-1/3">Critère</TableHead>
-                    <TableHead>Valeur</TableHead>
+                    <TableHead className="w-1/3">Zone / Critère</TableHead>
+                    <TableHead>Observation</TableHead>
+                    <TableHead className="w-12 print:hidden"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Fréquence (2 dernières semaines)</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Jamais / 1-2 fois / 1-2x/sem / 3-6x/sem / Chaque jour"
-                        value={bilan.douleur_frequence}
-                        onChange={(e) => handleChange("douleur_frequence", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">EVA habituelle /10</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: 5"
-                        value={bilan.douleur_eva_habituelle}
-                        onChange={(e) => handleChange("douleur_eva_habituelle", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Pire douleur /10</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: 8"
-                        value={bilan.douleur_eva_pire}
-                        onChange={(e) => handleChange("douleur_eva_pire", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Douleur sport /10</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: 7"
-                        value={bilan.douleur_eva_sport}
-                        onChange={(e) => handleChange("douleur_eva_sport", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Douleur la plus faible /10</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: 2"
-                        value={bilan.douleur_eva_faible}
-                        onChange={(e) => handleChange("douleur_eva_faible", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Type de douleur</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Constante / Diffuse / Intermittente / Aiguë..."
-                        value={bilan.douleur_type}
-                        onChange={(e) => handleChange("douleur_type", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Sensations</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Engourdissements / Picotements / Brûlure..."
-                        value={bilan.douleur_sensations}
-                        onChange={(e) => handleChange("douleur_sensations", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Localisation</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: Épaule droite, lombaires..."
-                        value={bilan.douleur_localisation}
-                        onChange={(e) => handleChange("douleur_localisation", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Circonstances d'apparition</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: Au mouvement, au repos..."
-                        value={bilan.douleur_circonstances_apparition}
-                        onChange={(e) => handleChange("douleur_circonstances_apparition", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Soulagé / Aggravé par</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Ex: Repos / Effort"
-                        value={bilan.douleur_soulage_aggrave}
-                        onChange={(e) => handleChange("douleur_soulage_aggrave", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
+                  {bilan.douleurs_entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <Input
+                          placeholder="Ex: Épaule droite, EVA..."
+                          value={entry.zone}
+                          onChange={(e) => handleEntryChange("douleurs_entries", entry.id, "zone", e.target.value)}
+                          className="border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder="Ex: 6/10, douleur au mouvement..."
+                          value={entry.observation}
+                          onChange={(e) => handleEntryChange("douleurs_entries", entry.id, "observation", e.target.value)}
+                          className="border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </TableCell>
+                      <TableCell className="print:hidden">
+                        {bilan.douleurs_entries.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => removeEntry("douleurs_entries", entry.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 print:hidden"
+                onClick={() => addEntry("douleurs_entries")}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter une entrée
+              </Button>
             </CardContent>
           </Card>
 
@@ -747,35 +684,55 @@ export default function PatientBilanInitial() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-1/3">Critère</TableHead>
+                    <TableHead className="w-1/3">Mouvement / Test</TableHead>
                     <TableHead>Observation</TableHead>
+                    <TableHead className="w-12 print:hidden"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Extension / Flexion / Oscillé / Trajets / Force</TableCell>
-                    <TableCell>
-                      <Textarea
-                        placeholder="Décrivez les observations morphodynamiques..."
-                        value={bilan.morpho_extension_flexion}
-                        onChange={(e) => handleChange("morpho_extension_flexion", e.target.value)}
-                        className="border-0 p-0 min-h-[60px] focus-visible:ring-0 resize-none"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Fonctionnel</TableCell>
-                    <TableCell>
-                      <Textarea
-                        placeholder="Évaluation fonctionnelle..."
-                        value={bilan.morpho_fonctionnel}
-                        onChange={(e) => handleChange("morpho_fonctionnel", e.target.value)}
-                        className="border-0 p-0 min-h-[60px] focus-visible:ring-0 resize-none"
-                      />
-                    </TableCell>
-                  </TableRow>
+                  {bilan.morphodynamique_entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <Input
+                          placeholder="Ex: Flexion genou, Extension..."
+                          value={entry.zone}
+                          onChange={(e) => handleEntryChange("morphodynamique_entries", entry.id, "zone", e.target.value)}
+                          className="border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder="Ex: Limité à 90°, douloureux..."
+                          value={entry.observation}
+                          onChange={(e) => handleEntryChange("morphodynamique_entries", entry.id, "observation", e.target.value)}
+                          className="border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </TableCell>
+                      <TableCell className="print:hidden">
+                        {bilan.morphodynamique_entries.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => removeEntry("morphodynamique_entries", entry.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 print:hidden"
+                onClick={() => addEntry("morphodynamique_entries")}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter une entrée
+              </Button>
             </CardContent>
           </Card>
 
@@ -793,88 +750,53 @@ export default function PatientBilanInitial() {
                   <TableRow>
                     <TableHead className="w-1/3">Zone</TableHead>
                     <TableHead>Observation</TableHead>
+                    <TableHead className="w-12 print:hidden"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Attitude statique</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Description de l'attitude statique..."
-                        value={bilan.morpho_attitude_statique}
-                        onChange={(e) => handleChange("morpho_attitude_statique", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Ceinture</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Observations ceinture..."
-                        value={bilan.morpho_ceinture}
-                        onChange={(e) => handleChange("morpho_ceinture", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Dos</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Observations dos..."
-                        value={bilan.morpho_dos}
-                        onChange={(e) => handleChange("morpho_dos", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Bassin</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Observations bassin..."
-                        value={bilan.morpho_bassin}
-                        onChange={(e) => handleChange("morpho_bassin", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Genou</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Observations genou..."
-                        value={bilan.morpho_genou}
-                        onChange={(e) => handleChange("morpho_genou", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Pieds</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Observations pieds..."
-                        value={bilan.morpho_pieds}
-                        onChange={(e) => handleChange("morpho_pieds", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Articulaire</TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Observations articulaires..."
-                        value={bilan.morpho_articulaire}
-                        onChange={(e) => handleChange("morpho_articulaire", e.target.value)}
-                        className="border-0 p-0 h-auto focus-visible:ring-0"
-                      />
-                    </TableCell>
-                  </TableRow>
+                  {bilan.morphostatique_entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <Input
+                          placeholder="Ex: Dos, Bassin, Genou..."
+                          value={entry.zone}
+                          onChange={(e) => handleEntryChange("morphostatique_entries", entry.id, "zone", e.target.value)}
+                          className="border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder="Ex: Hyperlordose, Genu valgum..."
+                          value={entry.observation}
+                          onChange={(e) => handleEntryChange("morphostatique_entries", entry.id, "observation", e.target.value)}
+                          className="border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </TableCell>
+                      <TableCell className="print:hidden">
+                        {bilan.morphostatique_entries.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => removeEntry("morphostatique_entries", entry.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 print:hidden"
+                onClick={() => addEntry("morphostatique_entries")}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter une entrée
+              </Button>
             </CardContent>
           </Card>
 
