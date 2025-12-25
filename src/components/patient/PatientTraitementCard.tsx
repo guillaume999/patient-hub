@@ -411,14 +411,25 @@ export function PatientTraitementCard({
     if (!latestTraitement) return;
     
     if (mode === 'replace') {
-      // Delete the old treatment
-      if (oldTraitementId) {
-        // First delete related data
+      // Transfer bilans and dates from old to new treatment before deleting
+      if (oldTraitementId && oldTraitementId !== latestTraitement.id) {
+        // Transfer bilans to new treatment
+        await supabase
+          .from("patient_bilans")
+          .update({ traitement_id: latestTraitement.id })
+          .eq("patient_id", patientId)
+          .eq("traitement_id", oldTraitementId);
+        
+        // Transfer seance dates to new treatment
+        await supabase
+          .from("patient_traitement_seance_dates")
+          .update({ traitement_id: latestTraitement.id })
+          .eq("patient_id", patientId)
+          .eq("traitement_id", oldTraitementId);
+        
+        // Now delete the old treatment structure (tests, seances)
         await supabase.from("traitement_tests").delete().eq("traitement_type_id", oldTraitementId);
         await supabase.from("traitement_seances").delete().eq("traitement_type_id", oldTraitementId);
-        await supabase.from("patient_traitement_seance_dates").delete().eq("traitement_id", oldTraitementId);
-        // Delete bilans linked to old treatment
-        await supabase.from("patient_bilans").delete().eq("traitement_id", oldTraitementId);
         // Delete the treatment itself
         await supabase.from("traitement_types").delete().eq("id", oldTraitementId);
       }
@@ -431,10 +442,18 @@ export function PatientTraitementCard({
       
       toast.success("Traitement remplacé avec succès");
     } else {
-      // Keep new as hidden, transfer bilans
+      // Keep new as hidden, transfer bilans and dates
       if (oldTraitementId && oldTraitementId !== latestTraitement.id) {
+        // Transfer bilans to new treatment
         await supabase
           .from("patient_bilans")
+          .update({ traitement_id: latestTraitement.id })
+          .eq("patient_id", patientId)
+          .eq("traitement_id", oldTraitementId);
+        
+        // Transfer seance dates to new treatment
+        await supabase
+          .from("patient_traitement_seance_dates")
           .update({ traitement_id: latestTraitement.id })
           .eq("patient_id", patientId)
           .eq("traitement_id", oldTraitementId);
