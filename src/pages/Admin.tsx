@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -312,28 +313,32 @@ export default function Admin() {
     }
   };
 
-  const togglePremium = async (userId: string, currentStatus: boolean) => {
+  const updateSubscriptionTier = async (userId: string, newTier: "free" | "basic" | "premium") => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ is_premium: !currentStatus })
+        .update({ 
+          subscription_tier: newTier,
+          is_premium: newTier !== "free",
+        })
         .eq("user_id", userId);
 
       if (error) throw error;
 
       setUsers(users.map(u => 
-        u.user_id === userId ? { ...u, is_premium: !currentStatus } : u
+        u.user_id === userId ? { ...u, subscription_tier: newTier, is_premium: newTier !== "free" } : u
       ));
 
+      const tierLabels = { free: "Gratuit", basic: "Basic", premium: "Premium" };
       toast({
         title: "Succès",
-        description: `Utilisateur ${!currentStatus ? "passé en premium" : "retiré du premium"}.`,
+        description: `Abonnement modifié en ${tierLabels[newTier]}.`,
       });
     } catch (error) {
-      console.error("Error updating premium status:", error);
+      console.error("Error updating subscription tier:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de mettre à jour le statut.",
+        description: "Impossible de mettre à jour l'abonnement.",
         variant: "destructive",
       });
     }
@@ -954,7 +959,21 @@ export default function Admin() {
                             </td>
                             <td className="py-3 px-2">
                               <div className="flex flex-col gap-1">
-                                {getTierBadge()}
+                                <Select
+                                  value={u.subscription_tier || "free"}
+                                  onValueChange={(value: "free" | "basic" | "premium") => 
+                                    updateSubscriptionTier(u.user_id, value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-[120px] h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="free">Gratuit</SelectItem>
+                                    <SelectItem value="basic">Basic</SelectItem>
+                                    <SelectItem value="premium">Premium</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 {u.subscription_end_date && (
                                   <span className="text-xs text-muted-foreground">
                                     Fin: {new Date(u.subscription_end_date).toLocaleDateString("fr-FR")}
