@@ -31,6 +31,8 @@ import {
   Edit,
   Save,
   X,
+  Sparkles,
+  CreditCard,
 } from "lucide-react";
 
 interface UserProfile {
@@ -45,6 +47,10 @@ interface UserProfile {
   is_banned: boolean | null;
   can_share: boolean | null;
   created_at: string;
+  subscription_tier: "free" | "basic" | "premium";
+  subscription_end_date: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
 }
 
 interface SeanceType {
@@ -100,7 +106,9 @@ interface CertificatModel {
 interface Stats {
   totalUsers: number;
   premiumUsers: number;
+  basicUsers: number;
   trialUsers: number;
+  freeUsers: number;
   totalSeances: number;
   totalTraitements: number;
   pendingTraitements: number;
@@ -128,7 +136,9 @@ export default function Admin() {
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     premiumUsers: 0,
+    basicUsers: 0,
     trialUsers: 0,
+    freeUsers: 0,
     totalSeances: 0,
     totalTraitements: 0,
     pendingTraitements: 0,
@@ -261,9 +271,13 @@ export default function Admin() {
 
       // Calculate stats
       const now = new Date();
-      const premiumCount = usersData?.filter(u => u.is_premium).length || 0;
+      const premiumCount = usersData?.filter(u => u.subscription_tier === 'premium').length || 0;
+      const basicCount = usersData?.filter(u => u.subscription_tier === 'basic').length || 0;
       const trialCount = usersData?.filter(u => 
-        !u.is_premium && u.trial_end_date && new Date(u.trial_end_date) > now
+        u.subscription_tier === 'free' && u.trial_end_date && new Date(u.trial_end_date) > now
+      ).length || 0;
+      const freeCount = usersData?.filter(u => 
+        u.subscription_tier === 'free' && (!u.trial_end_date || new Date(u.trial_end_date) <= now)
       ).length || 0;
       const pendingTraitementsCount = traitementsData?.filter(t => t.is_shared && !t.is_validated).length || 0;
       const pendingExercicesCount = exercicesData?.filter(e => e.status === 'pending').length || 0;
@@ -276,7 +290,9 @@ export default function Admin() {
       setStats({
         totalUsers: usersData?.length || 0,
         premiumUsers: premiumCount,
+        basicUsers: basicCount,
         trialUsers: trialCount,
+        freeUsers: freeCount,
         totalSeances: seancesData?.length || 0,
         totalTraitements: traitementsData?.length || 0,
         pendingTraitements: pendingTraitementsCount,
@@ -807,7 +823,7 @@ export default function Admin() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 text-center">
               <Users className="w-6 h-6 mx-auto text-primary mb-2" />
@@ -817,44 +833,37 @@ export default function Admin() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <Crown className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
+              <Crown className="w-6 h-6 mx-auto text-purple-500 mb-2" />
               <p className="text-2xl font-bold">{stats.premiumUsers}</p>
               <p className="text-xs text-muted-foreground">Premium</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <Clock className="w-6 h-6 mx-auto text-blue-500 mb-2" />
+              <Sparkles className="w-6 h-6 mx-auto text-blue-500 mb-2" />
+              <p className="text-2xl font-bold">{stats.basicUsers}</p>
+              <p className="text-xs text-muted-foreground">Basic</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Clock className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
               <p className="text-2xl font-bold">{stats.trialUsers}</p>
               <p className="text-xs text-muted-foreground">En essai</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <FileText className="w-6 h-6 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold">{stats.totalSeances}</p>
-              <p className="text-xs text-muted-foreground">Séances</p>
+              <CreditCard className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+              <p className="text-2xl font-bold">{stats.freeUsers}</p>
+              <p className="text-xs text-muted-foreground">Gratuit</p>
             </CardContent>
           </Card>
-          <Card className={stats.pendingTraitements > 0 ? "border-orange-500" : ""}>
+          <Card className={stats.pendingExercices > 0 || stats.pendingTraitements > 0 ? "border-orange-500" : ""}>
             <CardContent className="p-4 text-center">
               <ClipboardList className="w-6 h-6 mx-auto text-orange-500 mb-2" />
-              <p className="text-2xl font-bold">{stats.pendingTraitements}</p>
-              <p className="text-xs text-muted-foreground">TTT en attente</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Dumbbell className="w-6 h-6 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold">{stats.totalExercices}</p>
-              <p className="text-xs text-muted-foreground">Exercices</p>
-            </CardContent>
-          </Card>
-          <Card className={stats.pendingExercices > 0 ? "border-orange-500" : ""}>
-            <CardContent className="p-4 text-center">
-              <Dumbbell className="w-6 h-6 mx-auto text-orange-500 mb-2" />
-              <p className="text-2xl font-bold">{stats.pendingExercices}</p>
-              <p className="text-xs text-muted-foreground">Exo en attente</p>
+              <p className="text-2xl font-bold">{stats.pendingTraitements + stats.pendingExercices}</p>
+              <p className="text-xs text-muted-foreground">En attente</p>
             </CardContent>
           </Card>
         </div>
@@ -911,8 +920,8 @@ export default function Admin() {
                         <th className="text-left py-3 px-2">Utilisateur</th>
                         <th className="text-left py-3 px-2">Email</th>
                         <th className="text-left py-3 px-2">Pseudo</th>
-                        <th className="text-left py-3 px-2">Statut</th>
-                        <th className="text-left py-3 px-2">Premium</th>
+                        <th className="text-left py-3 px-2">Abonnement</th>
+                        <th className="text-left py-3 px-2">Stripe</th>
                         <th className="text-left py-3 px-2">Partage</th>
                         <th className="text-left py-3 px-2">Banni</th>
                         <th className="text-left py-3 px-2">Admin</th>
@@ -922,8 +931,15 @@ export default function Admin() {
                       {filteredUsers.map((u) => {
                         const now = new Date();
                         const trialEnd = u.trial_end_date ? new Date(u.trial_end_date) : null;
-                        const isInTrial = trialEnd && trialEnd > now && !u.is_premium;
-                        const trialExpired = trialEnd && trialEnd <= now && !u.is_premium;
+                        const isInTrial = u.subscription_tier === 'free' && trialEnd && trialEnd > now;
+
+                        const getTierBadge = () => {
+                          if (u.is_banned) return <Badge variant="destructive">Banni</Badge>;
+                          if (u.subscription_tier === 'premium') return <Badge className="bg-purple-500 text-white">Premium</Badge>;
+                          if (u.subscription_tier === 'basic') return <Badge className="bg-blue-500 text-white">Basic</Badge>;
+                          if (isInTrial) return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700">Essai</Badge>;
+                          return <Badge variant="outline">Gratuit</Badge>;
+                        };
 
                         return (
                           <tr key={u.id} className={`border-b hover:bg-muted/50 ${u.is_banned ? "bg-red-500/10" : ""}`}>
@@ -937,23 +953,24 @@ export default function Admin() {
                               {u.pseudo || "-"}
                             </td>
                             <td className="py-3 px-2">
-                              {u.is_banned ? (
-                                <Badge variant="destructive">Banni</Badge>
-                              ) : u.is_premium ? (
-                                <Badge className="bg-yellow-500">Premium</Badge>
-                              ) : isInTrial ? (
-                                <Badge variant="secondary">En essai</Badge>
-                              ) : trialExpired ? (
-                                <Badge variant="outline">Essai expiré</Badge>
-                              ) : (
-                                <Badge variant="outline">Standard</Badge>
-                              )}
+                              <div className="flex flex-col gap-1">
+                                {getTierBadge()}
+                                {u.subscription_end_date && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Fin: {new Date(u.subscription_end_date).toLocaleDateString("fr-FR")}
+                                  </span>
+                                )}
+                              </div>
                             </td>
-                            <td className="py-3 px-2">
-                              <Switch
-                                checked={u.is_premium || false}
-                                onCheckedChange={() => togglePremium(u.user_id, u.is_premium || false)}
-                              />
+                            <td className="py-3 px-2 text-sm">
+                              {u.stripe_customer_id ? (
+                                <Badge variant="outline" className="text-xs">
+                                  <CreditCard className="w-3 h-3 mr-1" />
+                                  Lié
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
                             </td>
                             <td className="py-3 px-2">
                               <Switch
