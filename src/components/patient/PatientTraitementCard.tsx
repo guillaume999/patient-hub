@@ -26,6 +26,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface SeanceExercice {
   id: string;
@@ -123,6 +128,7 @@ export function PatientTraitementCard({
   const [traitement, setTraitement] = useState<TraitementDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [testsExpanded, setTestsExpanded] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingTraitement, setEditingTraitement] = useState<any>(null);
   const [accessCodeDialogOpen, setAccessCodeDialogOpen] = useState(false);
@@ -674,56 +680,70 @@ export function PatientTraitementCard({
                       <p className="text-sm text-muted-foreground">{traitement.description}</p>
                     )}
 
-                    {/* Tests */}
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold">Tests ({traitement.tests?.length || 0})</p>
-                      {traitement.tests && traitement.tests.length > 0 ? (
-                        <div className="space-y-3">
-                          {traitement.tests.map((test, i) => {
-                            const thumbnailUrl = test.exercices?.thumbnail_url || null;
-                            const testName = test.exercices?.title || `Test ${i + 1}`;
-                            const testDescription = test.description || test.exercices?.description || null;
-                            
-                            return (
-                              <div 
-                                key={test.id} 
-                                className="flex items-start gap-4 p-3 bg-muted/50 rounded-xl border border-border"
-                              >
-                                {/* Order number */}
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-sm font-bold text-primary">{i + 1}</span>
-                                </div>
-
-                                {/* Thumbnail */}
-                                <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                                  {thumbnailUrl ? (
-                                    <img 
-                                      src={thumbnailUrl} 
-                                      alt={testName}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                      <FileText className="w-6 h-6" />
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Test info */}
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-base truncate">{testName}</p>
-                                  {testDescription && (
-                                    <p className="text-sm text-muted-foreground line-clamp-2">{testDescription}</p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
+                    {/* Tests - Collapsible */}
+                    <Collapsible open={testsExpanded} onOpenChange={setTestsExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border cursor-pointer hover:bg-muted/70 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <ClipboardCheck className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-semibold">Tests ({traitement.tests?.length || 0})</span>
+                          </div>
+                          {testsExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Aucun test</p>
-                      )}
-                    </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        {traitement.tests && traitement.tests.length > 0 ? (
+                          <div className="space-y-3">
+                            {traitement.tests.map((test, i) => {
+                              const thumbnailUrl = test.exercices?.thumbnail_url || null;
+                              const testName = test.exercices?.title || `Test ${i + 1}`;
+                              const testDescription = test.description || test.exercices?.description || null;
+                              
+                              return (
+                                <div 
+                                  key={test.id} 
+                                  className="flex items-start gap-4 p-3 bg-muted/50 rounded-xl border border-border"
+                                >
+                                  {/* Order number */}
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-sm font-bold text-primary">{i + 1}</span>
+                                  </div>
+
+                                  {/* Thumbnail */}
+                                  <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                    {thumbnailUrl ? (
+                                      <img 
+                                        src={thumbnailUrl} 
+                                        alt={testName}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                        <FileText className="w-6 h-6" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Test info */}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-base truncate">{testName}</p>
+                                    {testDescription && (
+                                      <p className="text-sm text-muted-foreground line-clamp-2">{testDescription}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground p-3">Aucun test</p>
+                        )}
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     {/* Séances with Bilans */}
                     <div className="space-y-3">
