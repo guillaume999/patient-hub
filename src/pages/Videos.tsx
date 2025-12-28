@@ -218,8 +218,10 @@ export default function Videos() {
   };
 
   const uploadVideoViaSignedUrl = async (file: File): Promise<{ publicUrl: string; objectName: string }> => {
+    if (!user) throw new Error("Not authenticated");
+
     const fileExt = file.name.split(".").pop();
-    const objectName = `${user!.id}/${Date.now()}.${fileExt}`;
+    const objectName = `${user.id}/${Date.now()}.${fileExt}`;
 
     const { data: signed, error: signError } = await supabase.storage
       .from("videos")
@@ -227,14 +229,26 @@ export default function Videos() {
 
     if (signError) throw signError;
 
-    const { error: uploadError } = await supabase.storage
-      .from("videos")
-      .uploadToSignedUrl(objectName, signed.token, file, {
-        contentType: file.type || "application/octet-stream",
-        cacheControl: "3600",
-      });
+    // Avoid Supabase client headers (authorization/apikey) on the PUT request.
+    // Some mobile networks/proxies block these cross-origin PUTs and the browser reports "Failed to fetch".
+    const rawSignedUrl = signed.signedUrl;
+    const uploadUrl = rawSignedUrl.startsWith("http")
+      ? rawSignedUrl
+      : `${import.meta.env.VITE_SUPABASE_URL}/storage/v1${rawSignedUrl.startsWith("/") ? "" : "/"}${rawSignedUrl}`;
 
-    if (uploadError) throw uploadError;
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "x-upsert": "false",
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Upload failed (${res.status}): ${text || res.statusText}`);
+    }
 
     const { data } = supabase.storage.from("videos").getPublicUrl(objectName);
     return { publicUrl: data.publicUrl, objectName };
