@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { toast } from "sonner";
+import * as tus from "tus-js-client";
 
 interface Exercice {
   id: string;
@@ -23,6 +24,7 @@ interface Exercice {
   status: string;
   video_url: string | null;
   thumbnail_url: string | null;
+  video_id: string | null;
   is_platform: boolean;
   is_copy: boolean;
   original_id: string | null;
@@ -61,7 +63,8 @@ export default function Exercices() {
     videoFile: null as File | null,
     video_url: "",
     thumbnail_url: "",
-    video_id: null as string | null
+    video_id: null as string | null,
+    video_title: ""
   });
 
   useEffect(() => {
@@ -195,18 +198,41 @@ export default function Exercices() {
     }
   };
 
-  const uploadVideoToStorage = async (videoFile: File): Promise<string> => {
+  const uploadVideoToStorage = async (videoFile: File): Promise<{ publicUrl: string; objectName: string }> => {
     const fileExt = videoFile.name.split(".").pop();
-    const fileName = `${user!.id}/${Date.now()}.${fileExt}`;
+    const objectName = `${user!.id}/${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("videos")
-      .upload(fileName, videoFile);
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error("Not authenticated");
 
-    if (uploadError) throw uploadError;
+    await new Promise<void>((resolve, reject) => {
+      const upload = new tus.Upload(videoFile, {
+        endpoint: `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/upload/resumable`,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        chunkSize: 6 * 1024 * 1024,
+        removeFingerprintOnSuccess: true,
+        uploadDataDuringCreation: true,
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        metadata: {
+          bucketName: "videos",
+          objectName,
+          contentType: videoFile.type || "application/octet-stream",
+          cacheControl: "3600",
+        },
+        onError: (err) => reject(err),
+        onSuccess: () => resolve(),
+      });
 
-    const { data } = supabase.storage.from("videos").getPublicUrl(fileName);
-    return data.publicUrl;
+      upload.start();
+    });
+
+    const { data } = supabase.storage.from("videos").getPublicUrl(objectName);
+    return { publicUrl: data.publicUrl, objectName };
   };
 
   const handleSubmit = async () => {
@@ -230,11 +256,31 @@ export default function Exercices() {
 
       let videoUrl = formData.video_url;
       let thumbnailUrl = formData.thumbnail_url;
+      let videoId = formData.video_id;
 
-      // Upload video if file selected
+      // Upload video if file selected (from phone)
       if (formData.videoFile) {
-        videoUrl = await uploadVideoToStorage(formData.videoFile);
+        if (!formData.video_title.trim()) {
+          toast.error("Le titre de la vidéo est requis");
+          return;
+        }
+
+        const uploaded = await uploadVideoToStorage(formData.videoFile);
+        videoUrl = uploaded.publicUrl;
         thumbnailUrl = "";
+
+        const { data: createdVideo, error: videoError } = await supabase
+          .from("videos")
+          .insert({
+            user_id: user.id,
+            title: formData.video_title.trim(),
+            video_url: videoUrl,
+          })
+          .select("id")
+          .single();
+
+        if (videoError) throw videoError;
+        videoId = createdVideo?.id ?? null;
       }
 
       const { error } = await supabase
@@ -244,6 +290,7 @@ export default function Exercices() {
           title: formData.title.trim(),
           description: formData.description.trim() || null,
           pathologie_tags: tags,
+          video_id: videoId,
           video_url: videoUrl || null,
           thumbnail_url: thumbnailUrl || null,
           author_name: userPseudo,
@@ -285,11 +332,31 @@ export default function Exercices() {
 
       let videoUrl = formData.video_url;
       let thumbnailUrl = formData.thumbnail_url;
+      let videoId = formData.video_id;
 
-      // Upload video if new file selected
+      // Upload video if new file selected (from phone)
       if (formData.videoFile) {
-        videoUrl = await uploadVideoToStorage(formData.videoFile);
+        if (!formData.video_title.trim()) {
+          toast.error("Le titre de la vidéo est requis");
+          return;
+        }
+
+        const uploaded = await uploadVideoToStorage(formData.videoFile);
+        videoUrl = uploaded.publicUrl;
         thumbnailUrl = "";
+
+        const { data: createdVideo, error: videoError } = await supabase
+          .from("videos")
+          .insert({
+            user_id: user.id,
+            title: formData.video_title.trim(),
+            video_url: videoUrl,
+          })
+          .select("id")
+          .single();
+
+        if (videoError) throw videoError;
+        videoId = createdVideo?.id ?? null;
       }
 
       const { error } = await supabase
@@ -298,6 +365,7 @@ export default function Exercices() {
           title: formData.title.trim(),
           description: formData.description.trim() || null,
           pathologie_tags: tags,
+          video_id: videoId,
           video_url: videoUrl || null,
           thumbnail_url: thumbnailUrl || null
         })
@@ -326,7 +394,8 @@ export default function Exercices() {
       videoFile: null,
       video_url: "",
       thumbnail_url: "",
-      video_id: null
+      video_id: null,
+      video_title: ""
     });
     setSelectedExercice(null);
   };
@@ -341,7 +410,8 @@ export default function Exercices() {
       videoFile: null,
       video_url: exercice.video_url || "",
       thumbnail_url: exercice.thumbnail_url || "",
-      video_id: null
+      video_id: exercice.video_id || null,
+      video_title: ""
     });
     setEditDialogOpen(true);
   };
@@ -1070,6 +1140,7 @@ interface ExerciceFormProps {
     video_url: string;
     thumbnail_url: string;
     video_id: string | null;
+    video_title: string;
   };
   setFormData: React.Dispatch<React.SetStateAction<{
     title: string;
@@ -1080,6 +1151,7 @@ interface ExerciceFormProps {
     video_url: string;
     thumbnail_url: string;
     video_id: string | null;
+    video_title: string;
   }>>;
   pathologies: string[];
   toggleTag: (tag: string) => void;
@@ -1120,6 +1192,7 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
     setFormData({
       ...formData,
       video_id: video.id,
+      video_title: video.title,
       video_url: video.video_url,
       thumbnail_url: video.thumbnail_url || "",
       videoFile: null
@@ -1150,7 +1223,14 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
       return;
     }
 
-    setFormData({ ...formData, videoFile: file });
+    setFormData({ 
+      ...formData,
+      videoFile: file,
+      video_id: null,
+      video_url: "",
+      thumbnail_url: "",
+      video_title: file.name.replace(/\.[^/.]+$/, "")
+    });
     
     // Create video preview
     const videoUrl = URL.createObjectURL(file);
@@ -1185,7 +1265,7 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
   };
 
   const removeVideo = () => {
-    setFormData({ ...formData, videoFile: null, video_url: "", thumbnail_url: "", video_id: null });
+    setFormData({ ...formData, videoFile: null, video_url: "", thumbnail_url: "", video_id: null, video_title: "" });
     setVideoPreview(null);
     setThumbnailPreview(null);
     if (videoInputRef.current) {
@@ -1312,6 +1392,18 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
                 <X className="w-4 h-4" />
               </Button>
             </div>
+
+            {formData.videoFile && (
+              <div className="space-y-2">
+                <Label htmlFor="video-title">Titre de la vidéo *</Label>
+                <Input
+                  id="video-title"
+                  value={formData.video_title}
+                  onChange={(e) => setFormData({ ...formData, video_title: e.target.value })}
+                  placeholder="Titre de la vidéo"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -1347,6 +1439,7 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
         <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Choisir une vidéo</DialogTitle>
+            <DialogDescription>Sélectionnez une vidéo de votre vidéothèque pour l’associer à cet exercice.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
             {loadingLibrary ? (
