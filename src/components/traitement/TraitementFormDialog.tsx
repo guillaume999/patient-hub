@@ -6,12 +6,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, X, Trash2, Calendar, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, X, Trash2, Calendar, GripVertical, ChevronUp, ChevronDown, Search, ChevronRight, Play, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+
+interface SeanceExercice {
+  id: string;
+  name: string | null;
+  description: string | null;
+  series: number | null;
+  repetitions: number | null;
+  duration_seconds: number | null;
+  exercices: {
+    id: string;
+    title: string;
+    thumbnail_url: string | null;
+  } | null;
+}
 
 interface SeanceOption {
   id: string;
@@ -34,6 +48,7 @@ interface ExerciceOption {
   title: string;
   description: string | null;
   thumbnail_url: string | null;
+  pathologie_tags?: string[];
 }
 
 interface TraitementTest {
@@ -77,6 +92,13 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
   const [description, setDescription] = useState("");
   const [tests, setTests] = useState<TraitementTest[]>([]);
   const [selectedSeances, setSelectedSeances] = useState<TraitementSeanceItem[]>([]);
+  
+  // Search and expansion state
+  const [exerciceSearch, setExerciceSearch] = useState("");
+  const [seanceSearch, setSeanceSearch] = useState("");
+  const [expandedSeances, setExpandedSeances] = useState<Set<string>>(new Set());
+  const [seanceExercices, setSeanceExercices] = useState<Record<string, SeanceExercice[]>>({});
+  const [loadingSeanceExercices, setLoadingSeanceExercices] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (open && user) {
@@ -132,12 +154,62 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     // Fetch exercices (user's own + platform exercices)
     const { data: exercicesData } = await supabase
       .from("exercices")
-      .select("id, title, description, thumbnail_url")
+      .select("id, title, description, thumbnail_url, pathologie_tags")
       .or(`user_id.eq.${user.id},status.eq.shared`)
       .order("title", { ascending: true });
     
     setAvailableExercices(exercicesData || []);
   };
+
+  const toggleSeanceExpansion = async (seanceId: string) => {
+    const newExpanded = new Set(expandedSeances);
+    
+    if (newExpanded.has(seanceId)) {
+      newExpanded.delete(seanceId);
+    } else {
+      newExpanded.add(seanceId);
+      
+      // Fetch exercices if not already loaded
+      if (!seanceExercices[seanceId]) {
+        setLoadingSeanceExercices(prev => new Set(prev).add(seanceId));
+        
+        const { data } = await supabase
+          .from("seance_exercices")
+          .select("id, name, description, series, repetitions, duration_seconds, exercices:exercice_id(id, title, thumbnail_url)")
+          .eq("seance_type_id", seanceId)
+          .order("ordre", { ascending: true });
+        
+        setSeanceExercices(prev => ({ ...prev, [seanceId]: data || [] }));
+        setLoadingSeanceExercices(prev => {
+          const next = new Set(prev);
+          next.delete(seanceId);
+          return next;
+        });
+      }
+    }
+    
+    setExpandedSeances(newExpanded);
+  };
+
+  // Filter exercices by search
+  const filteredExercices = availableExercices.filter(ex => {
+    if (!exerciceSearch.trim()) return true;
+    const searchLower = exerciceSearch.toLowerCase();
+    const matchTitle = ex.title.toLowerCase().includes(searchLower);
+    const matchTags = ex.pathologie_tags?.some(tag => tag.toLowerCase().includes(searchLower));
+    return matchTitle || matchTags;
+  });
+
+  // Filter seances by search
+  const filteredSeances = availableSeances.filter(seance => {
+    if (!seanceSearch.trim()) return true;
+    const searchLower = seanceSearch.toLowerCase();
+    const matchPathologie = seance.pathologie.toLowerCase().includes(searchLower);
+    const matchPathologies = seance.pathologies?.some(p => p.toLowerCase().includes(searchLower));
+    const matchObjectif = seance.objectif_principal.toLowerCase().includes(searchLower);
+    const matchObjectifs = seance.objectifs_principaux?.some(o => o.toLowerCase().includes(searchLower));
+    return matchPathologie || matchPathologies || matchObjectif || matchObjectifs;
+  });
 
   const resetForm = () => {
     setPathologie("");
@@ -145,6 +217,9 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     setDescription("");
     setTests([]);
     setSelectedSeances([]);
+    setExerciceSearch("");
+    setSeanceSearch("");
+    setExpandedSeances(new Set());
   };
 
   const addTest = (exercice: ExerciceOption) => {
@@ -368,12 +443,16 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary text-secondary-foreground font-bold">
                         {index + 1}
                       </div>
-                      {item.exercice?.thumbnail_url && (
+                      {item.exercice?.thumbnail_url ? (
                         <img 
                           src={item.exercice.thumbnail_url} 
                           alt={item.exercice.title} 
                           className="w-12 h-12 object-cover rounded"
                         />
+                      ) : (
+                        <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                          <Play className="w-5 h-5 text-muted-foreground" />
+                        </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{item.exercice?.title}</p>
@@ -390,12 +469,27 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
               </div>
             )}
 
+            {/* Search exercices */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par titre ou tag..."
+                value={exerciceSearch}
+                onChange={(e) => setExerciceSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
             {/* Available exercices */}
             <div className="max-h-48 overflow-y-auto border rounded-lg p-2 space-y-1">
-              {availableExercices.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-2 text-center">Aucun exercice disponible. Créez d'abord des exercices.</p>
+              {filteredExercices.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-2 text-center">
+                  {availableExercices.length === 0 
+                    ? "Aucun exercice disponible. Créez d'abord des exercices." 
+                    : "Aucun exercice trouvé pour cette recherche."}
+                </p>
               ) : (
-                availableExercices.map((exercice) => {
+                filteredExercices.map((exercice) => {
                   const count = tests.filter(t => t.exercice_id === exercice.id).length;
                   return (
                     <div 
@@ -404,12 +498,16 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
                       onClick={() => addTest(exercice)}
                     >
                       <Plus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      {exercice.thumbnail_url && (
+                      {exercice.thumbnail_url ? (
                         <img 
                           src={exercice.thumbnail_url} 
                           alt={exercice.title} 
                           className="w-10 h-10 object-cover rounded"
                         />
+                      ) : (
+                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                          <Play className="w-4 h-4 text-muted-foreground" />
+                        </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{exercice.title}</p>
@@ -482,36 +580,106 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
               </div>
             )}
 
+            {/* Search seances */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par pathologie ou objectif..."
+                value={seanceSearch}
+                onChange={(e) => setSeanceSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
             {/* Available seances */}
-            <div className="max-h-48 overflow-y-auto border rounded-lg p-2 space-y-1">
-              {availableSeances.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-2 text-center">Aucune séance disponible. Créez d'abord des séances types.</p>
+            <div className="max-h-64 overflow-y-auto border rounded-lg p-2 space-y-1">
+              {filteredSeances.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-2 text-center">
+                  {availableSeances.length === 0 
+                    ? "Aucune séance disponible. Créez d'abord des séances types." 
+                    : "Aucune séance trouvée pour cette recherche."}
+                </p>
               ) : (
-                availableSeances.map((seance) => {
+                filteredSeances.map((seance) => {
                   const count = selectedSeances.filter(s => s.seance_type_id === seance.id).length;
+                  const isExpanded = expandedSeances.has(seance.id);
+                  const isLoading = loadingSeanceExercices.has(seance.id);
+                  const exercices = seanceExercices[seance.id] || [];
+                  
                   return (
-                    <div 
-                      key={seance.id} 
-                      className={`flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer ${count > 0 ? 'bg-primary/10' : ''}`}
-                      onClick={() => addSeance(seance)}
-                    >
-                      <Plus className="w-4 h-4 text-primary" />
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap gap-1">
-                          {getDisplayPathologies(seance).map((p, i) => (
-                            <span key={i} className="text-sm">{p}</span>
-                          ))}
-                          <span className="text-muted-foreground">-</span>
-                          {getDisplayObjectifs(seance).map((o, i) => (
-                            <span key={i} className="text-sm font-medium">{o}</span>
-                          ))}
+                    <Collapsible key={seance.id} open={isExpanded}>
+                      <div className={`flex items-center gap-2 p-2 hover:bg-muted/50 rounded ${count > 0 ? 'bg-primary/10' : ''}`}>
+                        <CollapsibleTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSeanceExpansion(seance.id);
+                            }}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <div 
+                          className="flex-1 flex items-center gap-2 cursor-pointer"
+                          onClick={() => addSeance(seance)}
+                        >
+                          <Plus className="w-4 h-4 text-primary flex-shrink-0" />
+                          <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap gap-1">
+                              {getDisplayPathologies(seance).map((p, i) => (
+                                <span key={i} className="text-sm">{p}</span>
+                              ))}
+                              <span className="text-muted-foreground">-</span>
+                              {getDisplayObjectifs(seance).map((o, i) => (
+                                <span key={i} className="text-sm font-medium">{o}</span>
+                              ))}
+                            </div>
+                          </div>
+                          {count > 0 && (
+                            <Badge variant="secondary" className="text-xs">{count}x</Badge>
+                          )}
                         </div>
                       </div>
-                      {count > 0 && (
-                        <Badge variant="secondary" className="text-xs">{count}x</Badge>
-                      )}
-                    </div>
+                      <CollapsibleContent>
+                        <div className="ml-8 pl-4 border-l-2 border-primary/20 py-2 space-y-2">
+                          {exercices.length === 0 && !isLoading ? (
+                            <p className="text-xs text-muted-foreground">Aucun exercice dans cette séance</p>
+                          ) : (
+                            exercices.map((ex) => (
+                              <div key={ex.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+                                {ex.exercices?.thumbnail_url ? (
+                                  <img 
+                                    src={ex.exercices.thumbnail_url} 
+                                    alt={ex.name || ex.exercices.title} 
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                                    <Play className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{ex.name || ex.exercices?.title}</p>
+                                  <div className="flex gap-2 text-xs text-muted-foreground">
+                                    {ex.series && ex.series > 1 && <span>{ex.series} séries</span>}
+                                    {ex.repetitions && <span>{ex.repetitions} rép.</span>}
+                                    {ex.duration_seconds && <span>{ex.duration_seconds}s</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   );
                 })
               )}
