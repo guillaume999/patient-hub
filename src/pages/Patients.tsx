@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Users, Loader2, Calendar } from "lucide-react";
+import { Plus, Search, Users, Loader2, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,8 @@ export default function Patients() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("in_treatment");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [sortColumn, setSortColumn] = useState<keyof Patient | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [formData, setFormData] = useState({ 
     name: "", 
     status: "active",
@@ -105,11 +107,47 @@ export default function Patients() {
     }
   };
 
-  const filtered = patients.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const handleSort = (column: keyof Patient) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (column: keyof Patient) => {
+    if (sortColumn !== column) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    return sortDirection === "asc" 
+      ? <ArrowUp className="w-3 h-3 ml-1" /> 
+      : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const filtered = patients
+    .filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (!sortColumn) return 0;
+      const aVal = a[sortColumn];
+      const bVal = b[sortColumn];
+      
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+      
+      let comparison = 0;
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        comparison = aVal.localeCompare(bVal, "fr");
+      } else if (typeof aVal === "number" && typeof bVal === "number") {
+        comparison = aVal - bVal;
+      } else if (typeof aVal === "boolean" && typeof bVal === "boolean") {
+        comparison = aVal === bVal ? 0 : aVal ? -1 : 1;
+      }
+      
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
 
   if (authLoading || loading) return <Layout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
 
@@ -240,12 +278,42 @@ export default function Patients() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[150px]">Nom</TableHead>
-                    <TableHead className="min-w-[100px] hidden sm:table-cell">Numéro</TableHead>
-                    <TableHead className="min-w-[130px]">Statut</TableHead>
-                    <TableHead className="min-w-[80px] hidden md:table-cell">Mutuelle</TableHead>
-                    <TableHead className="min-w-[100px] hidden lg:table-cell">Séances</TableHead>
-                    <TableHead className="min-w-[100px] hidden lg:table-cell">Prescription</TableHead>
+                    <TableHead 
+                      className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort("name")}
+                    >
+                      <span className="flex items-center">Nom{getSortIcon("name")}</span>
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[100px] hidden sm:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort("numero")}
+                    >
+                      <span className="flex items-center">Numéro{getSortIcon("numero")}</span>
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[130px] cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort("status")}
+                    >
+                      <span className="flex items-center">Statut{getSortIcon("status")}</span>
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[80px] hidden md:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort("has_mutual")}
+                    >
+                      <span className="flex items-center">Mutuelle{getSortIcon("has_mutual")}</span>
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[100px] hidden lg:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort("remaining_sessions")}
+                    >
+                      <span className="flex items-center">Séances{getSortIcon("remaining_sessions")}</span>
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[100px] hidden lg:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort("prescription")}
+                    >
+                      <span className="flex items-center">Prescription{getSortIcon("prescription")}</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
