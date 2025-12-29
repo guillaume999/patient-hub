@@ -392,24 +392,45 @@ export default function Planning() {
       {/* Print styles */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
+          @page {
+            size: landscape;
+            margin: 1cm;
           }
-          .print\\:hidden {
+          
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          nav, footer, header, .print\\:hidden {
             display: none !important;
           }
-          #root {
-            visibility: visible;
-          }
-          #root > * {
-            visibility: visible;
-          }
+          
           .container {
             max-width: 100% !important;
             padding: 0 !important;
+            margin: 0 !important;
           }
+          
           table {
-            font-size: 10px !important;
+            font-size: 9px !important;
+            width: 100% !important;
+          }
+          
+          th, td {
+            padding: 2px !important;
+          }
+          
+          .bg-primary\\/20 {
+            background-color: rgba(147, 51, 234, 0.2) !important;
+          }
+          
+          .bg-primary\\/5 {
+            background-color: rgba(147, 51, 234, 0.05) !important;
+          }
+          
+          .bg-primary\\/10 {
+            background-color: rgba(147, 51, 234, 0.1) !important;
           }
         }
       `}</style>
