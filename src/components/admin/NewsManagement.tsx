@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Save, X, Newspaper, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Newspaper, Tag, Search } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -32,6 +32,10 @@ export function NewsManagement() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  
+  // Search and filter
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   // New news form
   const [showNewForm, setShowNewForm] = useState(false);
@@ -61,6 +65,27 @@ export function NewsManagement() {
     const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...existingCategories])];
     setCategories(allCategories);
   }, [news]);
+
+  // Filter news based on search and category
+  const filteredNews = useMemo(() => {
+    return news.filter((item) => {
+      const matchesSearch = searchQuery.trim() === "" ||
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = !filterCategory || item.category === filterCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [news, searchQuery, filterCategory]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || filterCategory !== null;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory(null);
+  };
 
   const fetchNews = async () => {
     try {
@@ -242,6 +267,36 @@ export function NewsManagement() {
             Nouvelle actualité
           </Button>
         </div>
+
+        {/* Search and filter */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par titre, description, catégorie..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={filterCategory || ""} onValueChange={(v) => setFilterCategory(v || null)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Toutes catégories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Toutes catégories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="w-4 h-4 mr-1" />
+              Effacer
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* New news form */}
@@ -324,12 +379,14 @@ export function NewsManagement() {
 
         {/* News list */}
         <div className="space-y-4">
-          {news.length === 0 ? (
+          {filteredNews.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              Aucune actualité pour le moment.
+              {hasActiveFilters 
+                ? "Aucune actualité ne correspond à votre recherche." 
+                : "Aucune actualité pour le moment."}
             </p>
           ) : (
-            news.map((item) => (
+            filteredNews.map((item) => (
               <Card key={item.id} className="border">
                 {editingId === item.id ? (
                   <CardContent className="p-4 space-y-4">

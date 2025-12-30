@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Newspaper, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Newspaper, Calendar, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +36,8 @@ const getCategoryColor = (category: string) => {
 export default function News() {
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -55,6 +59,32 @@ export default function News() {
     fetchNews();
   }, []);
 
+  // Extract unique categories
+  const categories = useMemo(() => {
+    return [...new Set(newsItems.map((n) => n.category))];
+  }, [newsItems]);
+
+  // Filter news based on search and category
+  const filteredNews = useMemo(() => {
+    return newsItems.filter((news) => {
+      const matchesSearch = searchQuery.trim() === "" || 
+        news.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        news.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        news.category.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = !selectedCategory || news.category === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [newsItems, searchQuery, selectedCategory]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory(null);
+  };
+
+  const hasActiveFilters = searchQuery.trim() !== "" || selectedCategory !== null;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -73,26 +103,77 @@ export default function News() {
           </div>
         </div>
 
+        {/* Search and filters */}
+        <div className="mb-6 max-w-3xl space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par titre, description ou catégorie..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {categories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Catégories :</span>
+              {categories.map((cat) => (
+                <Badge
+                  key={cat}
+                  variant={selectedCategory === cat ? "default" : "outline"}
+                  className={`cursor-pointer transition-colors ${
+                    selectedCategory === cat 
+                      ? "gradient-primary text-primary-foreground" 
+                      : getCategoryColor(cat) + " hover:opacity-80"
+                  }`}
+                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                >
+                  {cat}
+                </Badge>
+              ))}
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-6 px-2 text-xs"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Effacer
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Loading state */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : newsItems.length === 0 ? (
+        ) : filteredNews.length === 0 ? (
           <Card className="glass max-w-3xl">
             <CardContent className="p-8 text-center">
               <Newspaper className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Aucune actualité
+                {hasActiveFilters ? "Aucun résultat" : "Aucune actualité"}
               </h3>
               <p className="text-muted-foreground">
-                Les dernières nouvelles apparaîtront ici.
+                {hasActiveFilters 
+                  ? "Aucune actualité ne correspond à votre recherche."
+                  : "Les dernières nouvelles apparaîtront ici."}
               </p>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={clearFilters} className="mt-4">
+                  Effacer les filtres
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4 max-w-3xl">
-            {newsItems.map((news) => (
+            {filteredNews.map((news) => (
               <Card 
                 key={news.id} 
                 className={`glass hover:shadow-lg transition-shadow ${
