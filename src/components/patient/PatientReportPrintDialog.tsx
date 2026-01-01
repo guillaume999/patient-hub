@@ -145,6 +145,7 @@ export function PatientReportPrintDialog({
     sections.push(`<p><strong>N° Téléphone :</strong> ____________________</p>`);
     sections.push(`<p><strong>Mutuelle :</strong> ____________________</p>`);
     sections.push(`<p><strong>N° Sécu. Soc. :</strong> ____________________</p>`);
+    sections.push(`<p><strong>Médecin prescripteur :</strong> ____________________</p>`);
     
     if (options.includePatientInfo && patient.numero) {
       sections.push(`<p><strong>N° Patient :</strong> ${patient.numero}</p>`);
