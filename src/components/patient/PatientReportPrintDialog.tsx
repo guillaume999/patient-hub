@@ -36,9 +36,15 @@ interface PatientReportPrintDialogProps {
     motif_consultation: string;
     bilan_kine: string;
     objectifs_prise_en_charge: string;
+    bilan_initial_date?: string | null;
   };
   activeTraitementName: string | null;
   traitementSeances?: TraitementSeance[];
+  bilansIntermediaires?: {
+    id: string;
+    bilan_date: string | null;
+    position_after_seance: number;
+  }[];
 }
 
 const statusLabels: Record<string, string> = {
@@ -70,6 +76,7 @@ type OptionKey =
   | "includeBilanKine"
   | "includeObjectifs"
   | "includeTraitement"
+  | "includeDatesBilans"
   | "includeDate";
 
 interface OptionGroup {
@@ -103,6 +110,7 @@ const optionGroups: OptionGroup[] = [
       { key: "includeBilanKine", label: "Bilan kiné" },
       { key: "includeObjectifs", label: "Objectifs" },
       { key: "includeTraitement", label: "Plan de traitement" },
+      { key: "includeDatesBilans", label: "Dates des bilans" },
       { key: "includeComments", label: "Commentaires" },
     ],
   },
@@ -115,6 +123,7 @@ export function PatientReportPrintDialog({
   carePlan,
   activeTraitementName,
   traitementSeances = [],
+  bilansIntermediaires = [],
 }: PatientReportPrintDialogProps) {
   const [options, setOptions] = useState<Record<OptionKey, boolean>>({
     includePatientInfo: true,
@@ -132,6 +141,7 @@ export function PatientReportPrintDialog({
     includeBilanKine: true,
     includeObjectifs: true,
     includeTraitement: true,
+    includeDatesBilans: true,
     includeDate: true,
   });
 
@@ -220,6 +230,25 @@ export function PatientReportPrintDialog({
         });
         
         sections.push(`</tbody></table>`);
+      }
+    }
+
+    if (options.includeDatesBilans) {
+      sections.push(`<h2 class="section-title">Dates des bilans</h2>`);
+      const bilanInitialDate = carePlan.bilan_initial_date 
+        ? new Date(carePlan.bilan_initial_date).toLocaleDateString("fr-FR")
+        : "____/____/________";
+      sections.push(`<p><strong>Bilan initial :</strong> ${bilanInitialDate}</p>`);
+      
+      if (bilansIntermediaires.length > 0) {
+        bilansIntermediaires.forEach((bilan, index) => {
+          const bilanDate = bilan.bilan_date 
+            ? new Date(bilan.bilan_date).toLocaleDateString("fr-FR")
+            : "____/____/________";
+          sections.push(`<p><strong>Bilan intermédiaire ${index + 1} (après séance ${bilan.position_after_seance}) :</strong> ${bilanDate}</p>`);
+        });
+      } else {
+        sections.push(`<p><strong>Bilan intermédiaire :</strong> ____/____/________</p>`);
       }
     }
 
