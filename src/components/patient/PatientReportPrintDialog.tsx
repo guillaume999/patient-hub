@@ -7,6 +7,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Printer, Eye, User, FileText, Stethoscope, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface TraitementSeance {
+  ordre: number;
+  seance_date: string | null;
+  objectifs_principaux: string[];
+  pathologies: string[];
+}
+
 interface PatientReportPrintDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +38,7 @@ interface PatientReportPrintDialogProps {
     objectifs_prise_en_charge: string;
   };
   activeTraitementName: string | null;
+  traitementSeances?: TraitementSeance[];
 }
 
 const statusLabels: Record<string, string> = {
@@ -108,6 +116,7 @@ export function PatientReportPrintDialog({
   patient,
   carePlan,
   activeTraitementName,
+  traitementSeances = [],
 }: PatientReportPrintDialogProps) {
   const [options, setOptions] = useState<Record<OptionKey, boolean>>({
     includePatientInfo: true,
@@ -184,7 +193,33 @@ export function PatientReportPrintDialog({
 
     if (options.includeTraitement && activeTraitementName) {
       sections.push(`<h2 class="section-title">Plan de traitement</h2>`);
-      sections.push(`<p>${activeTraitementName}</p>`);
+      sections.push(`<p><strong>Traitement :</strong> ${activeTraitementName}</p>`);
+      
+      if (traitementSeances.length > 0) {
+        sections.push(`<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">`);
+        sections.push(`<thead><tr style="background: #f5f5f5;">`);
+        sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">N°</th>`);
+        sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>`);
+        sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Objectifs</th>`);
+        sections.push(`</tr></thead><tbody>`);
+        
+        traitementSeances.forEach((seance) => {
+          const dateStr = seance.seance_date 
+            ? new Date(seance.seance_date).toLocaleDateString("fr-FR") 
+            : "____/____/________";
+          const objectifs = seance.objectifs_principaux.length > 0 
+            ? seance.objectifs_principaux.join(", ") 
+            : seance.pathologies.join(", ") || "-";
+          
+          sections.push(`<tr>`);
+          sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${seance.ordre}</td>`);
+          sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${dateStr}</td>`);
+          sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${objectifs}</td>`);
+          sections.push(`</tr>`);
+        });
+        
+        sections.push(`</tbody></table>`);
+      }
     }
 
     if (options.includeComments && carePlan.comments) {
