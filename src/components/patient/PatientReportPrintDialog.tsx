@@ -92,6 +92,7 @@ const optionGroups: OptionGroup[] = [
     options: [
       { key: "includeAllergies", label: "Allergies" },
       { key: "includeAntecedents", label: "Antécédents" },
+      { key: "includeMedicalNotes", label: "Notes médicales" },
     ],
   },
   {
