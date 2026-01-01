@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Printer, Eye, User, FileText, Stethoscope, Settings2, ClipboardList } from "lucide-react";
+import { Printer, Eye, User, FileText, Stethoscope, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TraitementSeance {
@@ -90,9 +90,7 @@ type OptionKey =
   | "includeBilanKine"
   | "includeObjectifs"
   | "includeTraitement"
-  | "includeDate"
-  | "includeBilanInitial"
-  | "includeBilansIntermediaires";
+  | "includeDate";
 
 interface OptionGroup {
   title: string;
@@ -114,14 +112,6 @@ const optionGroups: OptionGroup[] = [
     options: [
       { key: "includeAllergies", label: "Allergies" },
       { key: "includeAntecedents", label: "Antécédents" },
-    ],
-  },
-  {
-    title: "Bilans",
-    icon: <ClipboardList className="w-4 h-4" />,
-    options: [
-      { key: "includeBilanInitial", label: "Bilan initial" },
-      { key: "includeBilansIntermediaires", label: "Bilans intermédiaires" },
     ],
   },
   {
@@ -164,8 +154,6 @@ export function PatientReportPrintDialog({
     includeObjectifs: true,
     includeTraitement: true,
     includeDate: true,
-    includeBilanInitial: true,
-    includeBilansIntermediaires: true,
   });
 
   const [activeTab, setActiveTab] = useState<"options" | "preview">("options");
@@ -249,26 +237,6 @@ export function PatientReportPrintDialog({
       sections.push(`<p class="multiline">${patient.medical_notes ? patient.medical_notes + extraLines : emptyLines}</p>`);
     }
 
-    if (options.includeBilanInitial) {
-      sections.push(`<h2 class="section-title">Bilan initial</h2>`);
-      const bilanContent = generateBilanInitialContent();
-      if (bilanContent) {
-        sections.push(bilanContent);
-      } else {
-        sections.push(`<p class="multiline">${emptyLines}</p>`);
-      }
-    }
-
-    if (options.includeBilansIntermediaires) {
-      sections.push(`<h2 class="section-title">Bilans intermédiaires</h2>`);
-      const bilansContent = generateBilansIntermediairesContent();
-      if (bilansContent) {
-        sections.push(bilansContent);
-      } else {
-        sections.push(`<p><em>Aucun bilan intermédiaire</em></p>`);
-      }
-    }
-
     if (options.includeMotifConsultation) {
       sections.push(`<h2 class="section-title">Motif de consultation</h2>`);
       sections.push(`<p class="multiline">${carePlan.motif_consultation ? carePlan.motif_consultation + extraLines : emptyLines}</p>`);
@@ -292,23 +260,55 @@ export function PatientReportPrintDialog({
         sections.push(`<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">`);
         sections.push(`<thead><tr style="background: #f5f5f5;">`);
         sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">N°</th>`);
+        sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>`);
         sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>`);
         sections.push(`<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Objectifs</th>`);
         sections.push(`</tr></thead><tbody>`);
         
+        // Create combined list of seances and bilans sorted by position
+        const items: Array<{ type: 'seance' | 'bilan'; ordre: number; data: any }> = [];
+        
         traitementSeances.forEach((seance) => {
-          const dateStr = seance.seance_date 
-            ? new Date(seance.seance_date).toLocaleDateString("fr-FR") 
-            : "____/____/________";
-          const objectifs = seance.objectifs_principaux.length > 0 
-            ? seance.objectifs_principaux.join(", ") 
-            : seance.pathologies.join(", ") || "-";
-          
-          sections.push(`<tr>`);
-          sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${seance.ordre}</td>`);
-          sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${dateStr}</td>`);
-          sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${objectifs}</td>`);
-          sections.push(`</tr>`);
+          items.push({ type: 'seance', ordre: seance.ordre, data: seance });
+        });
+        
+        bilansIntermediaires.forEach((bilan) => {
+          // Insert bilan after the corresponding seance
+          items.push({ type: 'bilan', ordre: bilan.position_after_seance + 0.5, data: bilan });
+        });
+        
+        // Sort by ordre to interleave seances and bilans
+        items.sort((a, b) => a.ordre - b.ordre);
+        
+        items.forEach((item) => {
+          if (item.type === 'seance') {
+            const seance = item.data;
+            const dateStr = seance.seance_date 
+              ? new Date(seance.seance_date).toLocaleDateString("fr-FR") 
+              : "____/____/________";
+            const objectifs = seance.objectifs_principaux.length > 0 
+              ? seance.objectifs_principaux.join(", ") 
+              : seance.pathologies.join(", ") || "-";
+            
+            sections.push(`<tr>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${seance.ordre}</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">Séance</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${dateStr}</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${objectifs}</td>`);
+            sections.push(`</tr>`);
+          } else {
+            const bilan = item.data;
+            const dateStr = bilan.bilan_date 
+              ? new Date(bilan.bilan_date).toLocaleDateString("fr-FR") 
+              : "____/____/________";
+            
+            sections.push(`<tr style="background: #f9f9f9;">`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">-</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">Bilan</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">${dateStr}</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">${bilan.content ? bilan.content.substring(0, 50) + (bilan.content.length > 50 ? '...' : '') : '-'}</td>`);
+            sections.push(`</tr>`);
+          }
         });
         
         sections.push(`</tbody></table>`);
