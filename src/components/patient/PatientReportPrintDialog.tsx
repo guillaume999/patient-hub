@@ -161,39 +161,39 @@ export function PatientReportPrintDialog({
     }
     sections.push(`</div>`);
 
-    if (options.includeAllergies && patient.allergies) {
+    if (options.includeAllergies) {
       sections.push(`<h2 class="section-title">Allergies</h2>`);
-      sections.push(`<p class="multiline">${patient.allergies}</p>`);
+      sections.push(`<p class="multiline">${patient.allergies || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
-    if (options.includeAntecedents && patient.antecedents) {
+    if (options.includeAntecedents) {
       sections.push(`<h2 class="section-title">Antécédents</h2>`);
-      sections.push(`<p class="multiline">${patient.antecedents}</p>`);
+      sections.push(`<p class="multiline">${patient.antecedents || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
-    if (options.includeMedicalNotes && patient.medical_notes) {
+    if (options.includeMedicalNotes) {
       sections.push(`<h2 class="section-title">Notes médicales</h2>`);
-      sections.push(`<p class="multiline">${patient.medical_notes}</p>`);
+      sections.push(`<p class="multiline">${patient.medical_notes || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
-    if (options.includeMotifConsultation && carePlan.motif_consultation) {
+    if (options.includeMotifConsultation) {
       sections.push(`<h2 class="section-title">Motif de consultation</h2>`);
-      sections.push(`<p class="multiline">${carePlan.motif_consultation}</p>`);
+      sections.push(`<p class="multiline">${carePlan.motif_consultation || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
-    if (options.includeBilanKine && carePlan.bilan_kine) {
+    if (options.includeBilanKine) {
       sections.push(`<h2 class="section-title">Bilan kiné</h2>`);
-      sections.push(`<p class="multiline">${carePlan.bilan_kine}</p>`);
+      sections.push(`<p class="multiline">${carePlan.bilan_kine || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
-    if (options.includeObjectifs && carePlan.objectifs_prise_en_charge) {
+    if (options.includeObjectifs) {
       sections.push(`<h2 class="section-title">Objectifs de prise en charge</h2>`);
-      sections.push(`<p class="multiline">${carePlan.objectifs_prise_en_charge}</p>`);
+      sections.push(`<p class="multiline">${carePlan.objectifs_prise_en_charge || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
-    if (options.includeTraitement && activeTraitementName) {
+    if (options.includeTraitement) {
       sections.push(`<h2 class="section-title">Plan de traitement</h2>`);
-      sections.push(`<p><strong>Traitement :</strong> ${activeTraitementName}</p>`);
+      sections.push(`<p><strong>Traitement :</strong> ${activeTraitementName || '____________________'}</p>`);
       
       if (traitementSeances.length > 0) {
         sections.push(`<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">`);
@@ -222,9 +222,9 @@ export function PatientReportPrintDialog({
       }
     }
 
-    if (options.includeComments && carePlan.comments) {
+    if (options.includeComments) {
       sections.push(`<h2 class="section-title">Commentaires</h2>`);
-      sections.push(`<p class="multiline">${carePlan.comments}</p>`);
+      sections.push(`<p class="multiline">${carePlan.comments || '<span style="color: #999;">_________________________________________________</span>'}</p>`);
     }
 
     return sections.join("\n");
