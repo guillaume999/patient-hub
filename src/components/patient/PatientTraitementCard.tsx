@@ -593,20 +593,42 @@ export function PatientTraitementCard({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const dateStr = bilan.bilan_date 
-      ? new Date(bilan.bilan_date).toLocaleDateString("fr-FR", { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }) 
-      : "Non définie";
+    // Parse bilan content if it's JSON
+    let bilanData = {
+      douleur_localisation: "",
+      douleur_intensite: "",
+      douleur_type: "",
+      amplitude_articulaire: "",
+      force_musculaire: "",
+      tests_specifiques: "",
+      observations: ""
+    };
+
+    if (bilan.content) {
+      try {
+        const parsed = JSON.parse(bilan.content);
+        if (typeof parsed === "object") {
+          bilanData = {
+            douleur_localisation: parsed.douleur_localisation || "",
+            douleur_intensite: parsed.douleur_intensite || "",
+            douleur_type: parsed.douleur_type || "",
+            amplitude_articulaire: parsed.amplitude_articulaire || "",
+            force_musculaire: parsed.force_musculaire || "",
+            tests_specifiques: parsed.tests_specifiques || "",
+            observations: parsed.observations || ""
+          };
+        }
+      } catch {
+        bilanData.observations = bilan.content;
+      }
+    }
 
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Bilan Intermédiaire</title>
+          <title>Bilan Intermédiaire - ${patientName}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
           <style>
             * {
               box-sizing: border-box;
@@ -614,124 +636,105 @@ export function PatientTraitementCard({
               padding: 0;
             }
             body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              padding: 40px 50px;
-              max-width: 850px;
+              font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              padding: 32px;
+              max-width: 900px;
               margin: 0 auto;
-              color: #1a1a1a;
+              color: #0f172a;
               line-height: 1.5;
+              background: #f8fafc;
             }
             .header {
-              text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 25px;
-              border-bottom: 3px solid #2563eb;
-            }
-            .header h1 {
-              font-size: 28px;
-              font-weight: 700;
-              color: #1e3a5f;
-              margin-bottom: 8px;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            }
-            .header .subtitle {
-              font-size: 16px;
-              color: #64748b;
-            }
-            .info-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin-bottom: 35px;
-              background: #f8fafc;
-              padding: 25px;
-              border-radius: 12px;
-              border: 1px solid #e2e8f0;
-            }
-            .info-item {
               display: flex;
-              flex-direction: column;
-              gap: 4px;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 32px;
             }
-            .info-item .label {
-              font-size: 12px;
-              text-transform: uppercase;
-              color: #64748b;
-              font-weight: 600;
-              letter-spacing: 0.5px;
+            .header-icon {
+              width: 48px;
+              height: 48px;
+              background: rgba(245, 158, 11, 0.1);
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             }
-            .info-item .value {
-              font-size: 15px;
-              color: #1e293b;
-              font-weight: 500;
+            .header-icon svg {
+              width: 24px;
+              height: 24px;
+              color: #f59e0b;
             }
-            .section-title {
-              font-size: 14px;
-              text-transform: uppercase;
-              color: #2563eb;
+            .header-text h1 {
+              font-size: 24px;
               font-weight: 700;
-              letter-spacing: 0.5px;
-              margin-bottom: 15px;
-              padding-bottom: 8px;
-              border-bottom: 2px solid #e2e8f0;
+              color: #0f172a;
             }
-            .content-box {
+            .header-text p {
+              font-size: 14px;
+              color: #64748b;
+            }
+            .card {
               background: #ffffff;
               border: 1px solid #e2e8f0;
               border-radius: 12px;
-              padding: 25px 30px;
-              margin-bottom: 40px;
-              min-height: 200px;
+              margin-bottom: 24px;
+              overflow: hidden;
             }
-            .content-text {
-              white-space: pre-wrap;
-              line-height: 1.8;
+            .card-header {
+              padding: 16px 20px;
+              border-bottom: 1px solid #e2e8f0;
+            }
+            .card-title {
+              font-size: 16px;
+              font-weight: 600;
+              color: #0f172a;
+            }
+            .card-content {
+              padding: 20px;
+            }
+            .field-group {
+              margin-bottom: 16px;
+            }
+            .field-group:last-child {
+              margin-bottom: 0;
+            }
+            .field-label {
+              font-size: 14px;
+              font-weight: 500;
+              color: #0f172a;
+              margin-bottom: 8px;
+            }
+            .field-value {
               font-size: 14px;
               color: #334155;
+              padding: 12px;
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              min-height: 44px;
+              white-space: pre-wrap;
             }
-            .content-empty {
+            .field-value.empty {
               color: #94a3b8;
               font-style: italic;
-              text-align: center;
-              padding: 40px 0;
             }
-            .footer {
-              margin-top: 50px;
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 40px;
-            }
-            .footer-section {
-              padding: 20px;
-              border: 1px dashed #cbd5e1;
-              border-radius: 8px;
+            .field-value.textarea {
               min-height: 100px;
             }
-            .footer-section .label {
-              font-size: 12px;
-              text-transform: uppercase;
-              color: #64748b;
-              font-weight: 600;
-              letter-spacing: 0.5px;
-              margin-bottom: 10px;
-            }
-            .print-info {
-              margin-top: 40px;
-              text-align: center;
-              font-size: 11px;
-              color: #94a3b8;
-              padding-top: 20px;
-              border-top: 1px solid #e2e8f0;
+            .grid-2 {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
             }
             @media print {
-              body { 
-                padding: 30px; 
+              body {
+                padding: 20px;
+                background: white;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
               }
-              .info-grid {
-                background: #f8fafc !important;
+              .card {
+                break-inside: avoid;
               }
               @page {
                 margin: 1cm;
@@ -741,55 +744,73 @@ export function PatientTraitementCard({
         </head>
         <body>
           <div class="header">
-            <h1>Bilan Intermédiaire</h1>
-            <div class="subtitle">Évaluation après séance ${seancePosition}</div>
-          </div>
-          
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="label">Patient</span>
-              <span class="value">${patientName}</span>
+            <div class="header-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
             </div>
-            <div class="info-item">
-              <span class="label">Date du bilan</span>
-              <span class="value">${dateStr}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Traitement</span>
-              <span class="value">${traitement?.pathologie || "Non défini"}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Position</span>
-              <span class="value">Après la séance n°${seancePosition}</span>
+            <div class="header-text">
+              <h1>Bilan intermédiaire</h1>
+              <p>${patientName} • Après séance ${seancePosition}</p>
             </div>
           </div>
 
-          <div class="section-title">Observations et évolution</div>
-          <div class="content-box">
-            ${bilan.content 
-              ? `<div class="content-text">${bilan.content}</div>` 
-              : `<div class="content-empty">Aucune observation enregistrée</div>`
-            }
+          <!-- Évaluation de la douleur -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Évaluation de la douleur</div>
+            </div>
+            <div class="card-content">
+              <div class="field-group">
+                <div class="field-label">Localisation</div>
+                <div class="field-value ${!bilanData.douleur_localisation ? 'empty' : ''}">${bilanData.douleur_localisation || 'Non renseigné'}</div>
+              </div>
+              <div class="grid-2">
+                <div class="field-group">
+                  <div class="field-label">Intensité (EVA 0-10)</div>
+                  <div class="field-value ${!bilanData.douleur_intensite ? 'empty' : ''}">${bilanData.douleur_intensite || 'Non renseigné'}</div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Type de douleur</div>
+                  <div class="field-value ${!bilanData.douleur_type ? 'empty' : ''}">${bilanData.douleur_type || 'Non renseigné'}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="footer">
-            <div class="footer-section">
-              <div class="label">Date et signature du praticien</div>
+          <!-- Bilan articulaire et musculaire -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Bilan articulaire et musculaire</div>
             </div>
-            <div class="footer-section">
-              <div class="label">Cachet</div>
+            <div class="card-content">
+              <div class="field-group">
+                <div class="field-label">Amplitudes articulaires</div>
+                <div class="field-value textarea ${!bilanData.amplitude_articulaire ? 'empty' : ''}">${bilanData.amplitude_articulaire || 'Non renseigné'}</div>
+              </div>
+              <div class="field-group">
+                <div class="field-label">Force musculaire</div>
+                <div class="field-value textarea ${!bilanData.force_musculaire ? 'empty' : ''}">${bilanData.force_musculaire || 'Non renseigné'}</div>
+              </div>
             </div>
           </div>
 
-          <div class="print-info">
-            Document généré le ${new Date().toLocaleDateString("fr-FR", { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+          <!-- Tests spécifiques -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Tests spécifiques</div>
+            </div>
+            <div class="card-content">
+              <div class="field-value textarea ${!bilanData.tests_specifiques ? 'empty' : ''}">${bilanData.tests_specifiques || 'Non renseigné'}</div>
+            </div>
+          </div>
+
+          <!-- Observations -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Observations complémentaires</div>
+            </div>
+            <div class="card-content">
+              <div class="field-value textarea ${!bilanData.observations ? 'empty' : ''}">${bilanData.observations || 'Non renseigné'}</div>
+            </div>
           </div>
         </body>
       </html>
@@ -797,6 +818,7 @@ export function PatientTraitementCard({
 
     printWindow.document.write(printContent);
     printWindow.document.close();
+    printWindow.focus();
     printWindow.print();
   };
 
