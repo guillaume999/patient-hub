@@ -91,6 +91,11 @@ export default function PatientDetail() {
     objectifs_principaux: string[];
     pathologies: string[];
   }[]>([]);
+  const [bilansIntermediaires, setBilansIntermediaires] = useState<{
+    id: string;
+    bilan_date: string | null;
+    position_after_seance: number;
+  }[]>([]);
   
   
   const [selectTraitementDialogOpen, setSelectTraitementDialogOpen] = useState(false);
@@ -112,8 +117,22 @@ export default function PatientDetail() {
     if (user && id) {
       fetchPatient();
       fetchCarePlan();
+      fetchBilansIntermediaires();
     }
   }, [user, id]);
+
+  const fetchBilansIntermediaires = async () => {
+    if (!id) return;
+    const { data } = await supabase
+      .from("patient_bilans")
+      .select("id, bilan_date, position_after_seance")
+      .eq("patient_id", id)
+      .order("position_after_seance", { ascending: true });
+    
+    if (data) {
+      setBilansIntermediaires(data);
+    }
+  };
 
   const fetchPatient = async () => {
     const { data, error } = await supabase
@@ -739,9 +758,11 @@ export default function PatientDetail() {
             motif_consultation: carePlan.motif_consultation,
             bilan_kine: carePlan.bilan_kine,
             objectifs_prise_en_charge: carePlan.objectifs_prise_en_charge,
+            bilan_initial_date: carePlan.bilan_initial_date,
           }}
           activeTraitementName={activeTraitementName}
           traitementSeances={traitementSeances}
+          bilansIntermediaires={bilansIntermediaires}
         />
       </div>
     </Layout>
