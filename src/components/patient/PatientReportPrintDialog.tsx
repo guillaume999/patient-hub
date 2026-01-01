@@ -138,18 +138,19 @@ export function PatientReportPrintDialog({
   const generatePreviewContent = () => {
     const sections: string[] = [];
     
-    // Toujours afficher les champs d'identification vides
+    // Toujours afficher les champs d'identification vides en 2 colonnes
     sections.push(`<h2 class="section-title">Informations patient</h2>`);
+    sections.push(`<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">`);
     sections.push(`<p><strong>Nom :</strong> ____________________</p>`);
     sections.push(`<p><strong>Prénom :</strong> ____________________</p>`);
     sections.push(`<p><strong>N° Téléphone :</strong> ____________________</p>`);
     sections.push(`<p><strong>Mutuelle :</strong> ____________________</p>`);
     sections.push(`<p><strong>N° Sécu. Soc. :</strong> ____________________</p>`);
     sections.push(`<p><strong>Médecin prescripteur :</strong> ____________________</p>`);
-    
     if (options.includePatientInfo && patient.numero) {
       sections.push(`<p><strong>N° Patient :</strong> ${patient.numero}</p>`);
     }
+    sections.push(`</div>`);
 
     if (options.includeAllergies && patient.allergies) {
       sections.push(`<h2 class="section-title">Allergies</h2>`);
