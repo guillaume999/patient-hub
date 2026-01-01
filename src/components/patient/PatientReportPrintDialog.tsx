@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -46,7 +46,7 @@ const prescriptionLabels: Record<string, string> = {
   renouv_kine: "Renouv. kiné",
 };
 
-type OptionKey = 
+type OptionKey =
   | "includePatientInfo"
   | "includeStatus"
   | "includeMutual"
@@ -66,7 +66,7 @@ type OptionKey =
 
 interface OptionGroup {
   title: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   options: { key: OptionKey; label: string }[];
 }
 
@@ -320,20 +320,18 @@ export function PatientReportPrintDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-4xl max-h-[calc(100dvh-1rem)] overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Printer className="w-5 h-5 text-primary" />
             Imprimer le compte-rendu
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            {patient.name}
-          </p>
+          <p className="text-sm text-muted-foreground">{patient.name}</p>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="flex-1 min-h-0 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Options */}
-          <div className="flex flex-col space-y-3">
+          <div className="flex flex-col space-y-3 min-h-0">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">
                 {selectedCount}/{totalCount} éléments
@@ -360,7 +358,7 @@ export function PatientReportPrintDialog({
               </div>
             </div>
 
-            <ScrollArea className="flex-1 pr-3">
+            <ScrollArea className="flex-1 min-h-0 pr-3">
               <div className="space-y-4">
                 {optionGroups.map((group) => (
                   <div key={group.title} className="space-y-2">
@@ -426,11 +424,8 @@ export function PatientReportPrintDialog({
               <Eye className="w-4 h-4" />
               Aperçu
             </div>
-            <ScrollArea className="flex-1 border rounded-lg bg-white dark:bg-zinc-900">
-              <div
-                dangerouslySetInnerHTML={{ __html: previewHtml }}
-                className="min-h-full"
-              />
+            <ScrollArea className="flex-1 min-h-0 border rounded-lg bg-card">
+              <div dangerouslySetInnerHTML={{ __html: previewHtml }} className="min-h-full" />
             </ScrollArea>
           </div>
         </div>
