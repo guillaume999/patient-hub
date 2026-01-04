@@ -627,7 +627,7 @@ export default function Planning() {
         @media print {
           @page {
             size: A4 landscape;
-            margin: 3mm;
+            margin: 0 !important;
           }
           
           * {
@@ -642,7 +642,7 @@ export default function Planning() {
             overflow: hidden !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            font-size: 8px !important;
+            font-size: 10px !important;
           }
           
           nav, footer, header, .print\\:hidden, [class*="MobileBottomNav"], .mt-4, button {
@@ -650,8 +650,9 @@ export default function Planning() {
           }
           
           #root {
-            height: auto !important;
-            overflow: visible !important;
+            height: 210mm !important;
+            max-height: 210mm !important;
+            overflow: hidden !important;
             padding: 0 !important;
             margin: 0 !important;
           }
@@ -659,16 +660,16 @@ export default function Planning() {
           .container {
             max-width: 100% !important;
             width: 100% !important;
-            padding: 0 !important;
+            padding: 0 2mm !important;
             margin: 0 !important;
           }
           
           .py-8 {
-            padding: 2mm 0 0 0 !important;
+            padding: 0 !important;
           }
           
           .mb-8 {
-            margin-bottom: 2mm !important;
+            margin-bottom: 1mm !important;
           }
           
           .flex.items-center.gap-3 {
@@ -676,7 +677,7 @@ export default function Planning() {
           }
           
           .p-3 {
-            padding: 1mm !important;
+            padding: 0 !important;
           }
           
           .rounded-xl {
@@ -689,65 +690,68 @@ export default function Planning() {
           }
           
           h1, .text-3xl {
-            font-size: 12px !important;
+            font-size: 14px !important;
             line-height: 1.2 !important;
             margin: 0 !important;
           }
           
           .text-muted-foreground {
-            font-size: 8px !important;
+            font-size: 9px !important;
           }
           
           .overflow-x-auto {
             overflow: visible !important;
+            max-height: 195mm !important;
           }
           
           table {
-            font-size: 6px !important;
+            font-size: 8px !important;
             width: 100% !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
             page-break-inside: avoid !important;
+            page-break-after: avoid !important;
           }
           
           thead th {
-            font-size: 7px !important;
+            font-size: 9px !important;
             padding: 1mm !important;
             height: auto !important;
           }
           
           thead th .text-lg {
-            font-size: 9px !important;
+            font-size: 10px !important;
           }
           
           tbody tr {
-            height: 3.2mm !important;
-            max-height: 3.2mm !important;
+            height: 3.5mm !important;
+            max-height: 3.5mm !important;
           }
           
           th, td {
-            padding: 0.3mm !important;
-            height: 3.2mm !important;
-            max-height: 3.2mm !important;
+            padding: 0.5mm !important;
+            height: 3.5mm !important;
+            max-height: 3.5mm !important;
             overflow: hidden !important;
-            line-height: 1 !important;
+            line-height: 1.1 !important;
             border: 0.5px solid #ddd !important;
           }
           
           th:first-child, td:first-child {
-            width: 25px !important;
-            font-size: 5px !important;
+            width: 28px !important;
+            font-size: 6px !important;
           }
           
           .h-8 {
-            height: 3.2mm !important;
+            height: 3.5mm !important;
           }
           
           .absolute.inset-0\\.5 {
             position: absolute !important;
             inset: 0.2mm !important;
-            padding: 0.2mm !important;
-            font-size: 5px !important;
+            padding: 0.3mm !important;
+            font-size: 7px !important;
+            font-weight: 600 !important;
           }
           
           .bg-primary\\/20 {
