@@ -62,9 +62,8 @@ export default function Planning() {
   const [duration, setDuration] = useState<number>(30);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [duplicateMode, setDuplicateMode] = useState<"day" | "week">("week");
-  const [sourceDayIndex, setSourceDayIndex] = useState<number>(0);
-  const [targetDate, setTargetDate] = useState<Date | undefined>(addDays(new Date(), 1));
-  const [targetWeekOffset, setTargetWeekOffset] = useState<number>(1);
+  const [sourceDate, setSourceDate] = useState<Date | undefined>(new Date());
+  const [targetDate, setTargetDate] = useState<Date | undefined>(addDays(new Date(), 7));
   const [isDuplicating, setIsDuplicating] = useState(false);
 
   useEffect(() => {
@@ -176,13 +175,28 @@ export default function Planning() {
   };
 
   const handleDuplicate = async () => {
+    if (!sourceDate || !targetDate) {
+      toast({ title: "Erreur", description: "Veuillez sélectionner les dates source et cible", variant: "destructive" });
+      return;
+    }
+    
     setIsDuplicating(true);
     try {
       if (duplicateMode === "week") {
-        // Duplicate entire week to target week
-        const targetWeekStart = addWeeks(startOfWeek(currentDate, { weekStartsOn: 1 }), targetWeekOffset);
+        // Fetch appointments for the source week
+        const sourceWeekStart = startOfWeek(sourceDate, { weekStartsOn: 1 });
+        const sourceWeekEnd = endOfWeek(sourceDate, { weekStartsOn: 1 });
+        const targetWeekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
         
-        const appointmentsToDuplicate = appointments.map(apt => {
+        const { data: sourceAppointments, error: fetchError } = await supabase
+          .from("appointments")
+          .select("*")
+          .gte("start_time", sourceWeekStart.toISOString())
+          .lte("start_time", sourceWeekEnd.toISOString());
+        
+        if (fetchError) throw fetchError;
+        
+        const appointmentsToDuplicate = (sourceAppointments || []).map(apt => {
           const originalStart = parseISO(apt.start_time);
           const originalEnd = parseISO(apt.end_time);
           const dayOfWeek = originalStart.getDay() === 0 ? 6 : originalStart.getDay() - 1; // Monday = 0
@@ -205,24 +219,23 @@ export default function Planning() {
           if (error) throw error;
         }
         
-        toast({ title: "Semaine dupliquée", description: `${appointmentsToDuplicate.length} rendez-vous copiés` });
+        toast({ title: "Semaine dupliquée", description: `${appointmentsToDuplicate.length} rendez-vous copiés vers la semaine du ${format(targetWeekStart, "d MMMM", { locale: fr })}` });
       } else {
-        // Duplicate day to target date
-        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-        const sourceDay = addDays(weekStart, sourceDayIndex);
+        // Fetch appointments for the source day
+        const sourceDayStart = new Date(sourceDate);
+        sourceDayStart.setHours(0, 0, 0, 0);
+        const sourceDayEnd = new Date(sourceDate);
+        sourceDayEnd.setHours(23, 59, 59, 999);
         
-        if (!targetDate) {
-          toast({ title: "Erreur", description: "Veuillez sélectionner une date cible", variant: "destructive" });
-          setIsDuplicating(false);
-          return;
-        }
+        const { data: sourceAppointments, error: fetchError } = await supabase
+          .from("appointments")
+          .select("*")
+          .gte("start_time", sourceDayStart.toISOString())
+          .lte("start_time", sourceDayEnd.toISOString());
         
-        const dayAppointments = appointments.filter(apt => {
-          const aptStart = parseISO(apt.start_time);
-          return isSameDay(aptStart, sourceDay);
-        });
+        if (fetchError) throw fetchError;
         
-        const appointmentsToDuplicate = dayAppointments.map(apt => {
+        const appointmentsToDuplicate = (sourceAppointments || []).map(apt => {
           const originalStart = parseISO(apt.start_time);
           const originalEnd = parseISO(apt.end_time);
           
@@ -243,7 +256,7 @@ export default function Planning() {
           if (error) throw error;
         }
         
-        toast({ title: "Jour dupliqué", description: `${appointmentsToDuplicate.length} rendez-vous copiés` });
+        toast({ title: "Jour dupliqué", description: `${appointmentsToDuplicate.length} rendez-vous copiés vers le ${format(targetDate, "d MMMM", { locale: fr })}` });
       }
       
       setIsDuplicateDialogOpen(false);
@@ -522,7 +535,7 @@ export default function Planning() {
 
       {/* Duplicate Dialog */}
       <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Dupliquer les rendez-vous</DialogTitle>
           </DialogHeader>
@@ -534,89 +547,112 @@ export default function Planning() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="week">Dupliquer la semaine entière</SelectItem>
+                  <SelectItem value="week">Dupliquer une semaine</SelectItem>
                   <SelectItem value="day">Dupliquer un jour</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {duplicateMode === "week" ? (
-              <div>
-                <Label>Vers quelle semaine ?</Label>
-                <Select value={targetWeekOffset.toString()} onValueChange={(v) => setTargetWeekOffset(parseInt(v))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Semaine prochaine (+1)</SelectItem>
-                    <SelectItem value="2">Dans 2 semaines (+2)</SelectItem>
-                    <SelectItem value="3">Dans 3 semaines (+3)</SelectItem>
-                    <SelectItem value="4">Dans 4 semaines (+4)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {appointments.length} rendez-vous seront dupliqués
-                </p>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Source Date */}
+              <div className="space-y-2">
+                <Label>{duplicateMode === "week" ? "Semaine source" : "Jour source"}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !sourceDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {sourceDate ? format(sourceDate, duplicateMode === "week" ? "'S.' w" : "dd/MM/yy", { locale: fr }) : <span>Source</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={sourceDate}
+                      onSelect={setSourceDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      locale={fr}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {sourceDate && (
+                  <p className="text-xs text-muted-foreground">
+                    {duplicateMode === "week" 
+                      ? `Semaine du ${format(startOfWeek(sourceDate, { weekStartsOn: 1 }), "d MMM", { locale: fr })}`
+                      : format(sourceDate, "EEEE d MMM", { locale: fr })
+                    }
+                  </p>
+                )}
               </div>
-            ) : (
-              <>
-                <div>
-                  <Label>Jour source</Label>
-                  <Select value={sourceDayIndex.toString()} onValueChange={(v) => setSourceDayIndex(parseInt(v))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DAY_NAMES.map((name, idx) => (
-                        <SelectItem key={idx} value={idx.toString()}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Vers quelle date ?</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !targetDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {targetDate ? format(targetDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={targetDate}
-                        onSelect={setTargetDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                        locale={fr}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {appointments.filter(apt => {
-                    const aptStart = parseISO(apt.start_time);
-                    const sourceDay = addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), sourceDayIndex);
-                    return isSameDay(aptStart, sourceDay);
-                  }).length} rendez-vous seront dupliqués
-                </p>
-              </>
-            )}
+
+              {/* Target Date */}
+              <div className="space-y-2">
+                <Label>{duplicateMode === "week" ? "Semaine cible" : "Jour cible"}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !targetDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {targetDate ? format(targetDate, duplicateMode === "week" ? "'S.' w" : "dd/MM/yy", { locale: fr }) : <span>Cible</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={targetDate}
+                      onSelect={setTargetDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      locale={fr}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {targetDate && (
+                  <p className="text-xs text-muted-foreground">
+                    {duplicateMode === "week" 
+                      ? `Semaine du ${format(startOfWeek(targetDate, { weekStartsOn: 1 }), "d MMM", { locale: fr })}`
+                      : format(targetDate, "EEEE d MMM", { locale: fr })
+                    }
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+              {duplicateMode === "week" ? (
+                <p>Tous les rendez-vous de la semaine source seront copiés vers la semaine cible en conservant leurs jours et horaires.</p>
+              ) : (
+                <p>Tous les rendez-vous du jour source seront copiés vers le jour cible en conservant leurs horaires.</p>
+              )}
+            </div>
 
             <Button 
               onClick={handleDuplicate} 
-              disabled={isDuplicating}
               className="w-full gradient-primary text-primary-foreground"
+              disabled={isDuplicating || !sourceDate || !targetDate}
             >
-              {isDuplicating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Dupliquer
+              {isDuplicating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Duplication en cours...
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Dupliquer
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
