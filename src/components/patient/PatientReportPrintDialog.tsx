@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Printer, Eye, User, FileText, Stethoscope, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
+
+// Helper function to escape HTML entities for safe rendering
+const escapeHtml = (text: string | null | undefined): string => {
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
 
 interface TraitementSeance {
   ordre: number;
@@ -178,7 +190,7 @@ export function PatientReportPrintDialog({
     const content: string[] = [];
     fields.forEach(({ key, label }) => {
       if (bilanInitialData[key]) {
-        content.push(`<p><strong>${label} :</strong> ${bilanInitialData[key]}</p>`);
+        content.push(`<p><strong>${escapeHtml(label)} :</strong> ${escapeHtml(bilanInitialData[key])}</p>`);
       }
     });
 
@@ -194,8 +206,8 @@ export function PatientReportPrintDialog({
         ? new Date(bilan.bilan_date).toLocaleDateString("fr-FR") 
         : "Date non définie";
       content.push(`<div style="margin-bottom: 15px;">`);
-      content.push(`<p><strong>Bilan ${index + 1}</strong> (après séance ${bilan.position_after_seance}) - ${dateStr}</p>`);
-      content.push(`<p style="white-space: pre-wrap;">${bilan.content || "Aucun contenu"}</p>`);
+      content.push(`<p><strong>Bilan ${index + 1}</strong> (après séance ${bilan.position_after_seance}) - ${escapeHtml(dateStr)}</p>`);
+      content.push(`<p style="white-space: pre-wrap;">${escapeHtml(bilan.content) || "Aucun contenu"}</p>`);
       content.push(`</div>`);
     });
 
@@ -215,7 +227,7 @@ export function PatientReportPrintDialog({
     sections.push(`<p><strong>N° Sécu. Soc. :</strong> ____________________</p>`);
     sections.push(`<p><strong>Médecin prescripteur :</strong> ____________________</p>`);
     if (options.includePatientInfo && patient.numero) {
-      sections.push(`<p><strong>N° Patient :</strong> ${patient.numero}</p>`);
+      sections.push(`<p><strong>N° Patient :</strong> ${escapeHtml(patient.numero)}</p>`);
     }
     sections.push(`</div>`);
 
@@ -224,33 +236,33 @@ export function PatientReportPrintDialog({
 
     if (options.includeAllergies) {
       sections.push(`<h2 class="section-title">Allergies</h2>`);
-      sections.push(`<p class="multiline">${patient.allergies ? patient.allergies + extraLines : emptyLines}</p>`);
+      sections.push(`<p class="multiline">${patient.allergies ? escapeHtml(patient.allergies) + extraLines : emptyLines}</p>`);
     }
 
     if (options.includeAntecedents) {
       sections.push(`<h2 class="section-title">Antécédents</h2>`);
-      sections.push(`<p class="multiline">${patient.antecedents ? patient.antecedents + extraLines : emptyLines}</p>`);
+      sections.push(`<p class="multiline">${patient.antecedents ? escapeHtml(patient.antecedents) + extraLines : emptyLines}</p>`);
     }
 
 
     if (options.includeMotifConsultation) {
       sections.push(`<h2 class="section-title">Motif de consultation</h2>`);
-      sections.push(`<p class="multiline">${carePlan.motif_consultation ? carePlan.motif_consultation + extraLines : emptyLines}</p>`);
+      sections.push(`<p class="multiline">${carePlan.motif_consultation ? escapeHtml(carePlan.motif_consultation) + extraLines : emptyLines}</p>`);
     }
 
     if (options.includeBilanKine) {
       sections.push(`<h2 class="section-title">Bilan kiné</h2>`);
-      sections.push(`<p class="multiline">${carePlan.bilan_kine ? carePlan.bilan_kine + extraLines : emptyLines}</p>`);
+      sections.push(`<p class="multiline">${carePlan.bilan_kine ? escapeHtml(carePlan.bilan_kine) + extraLines : emptyLines}</p>`);
     }
 
     if (options.includeObjectifs) {
       sections.push(`<h2 class="section-title">Objectifs de prise en charge</h2>`);
-      sections.push(`<p class="multiline">${carePlan.objectifs_prise_en_charge ? carePlan.objectifs_prise_en_charge + extraLines : emptyLines}</p>`);
+      sections.push(`<p class="multiline">${carePlan.objectifs_prise_en_charge ? escapeHtml(carePlan.objectifs_prise_en_charge) + extraLines : emptyLines}</p>`);
     }
 
     if (options.includeTraitement) {
       sections.push(`<h2 class="section-title">Plan de traitement</h2>`);
-      sections.push(`<p><strong>Traitement :</strong> ${activeTraitementName || '____________________'}</p>`);
+      sections.push(`<p><strong>Traitement :</strong> ${escapeHtml(activeTraitementName) || '____________________'}</p>`);
       
       if (traitementSeances.length > 0) {
         sections.push(`<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">`);
@@ -283,8 +295,8 @@ export function PatientReportPrintDialog({
               ? new Date(seance.seance_date).toLocaleDateString("fr-FR") 
               : "____/____/________";
             const objectifs = seance.objectifs_principaux.length > 0 
-              ? seance.objectifs_principaux.join(", ") 
-              : seance.pathologies.join(", ") || "-";
+              ? escapeHtml(seance.objectifs_principaux.join(", ")) 
+              : escapeHtml(seance.pathologies.join(", ")) || "-";
             
             sections.push(`<tr>`);
             sections.push(`<td style="border: 1px solid #ddd; padding: 8px;">${seance.ordre}</td>`);
@@ -313,7 +325,7 @@ export function PatientReportPrintDialog({
 
     if (options.includeComments) {
       sections.push(`<h2 class="section-title">Commentaires</h2>`);
-      sections.push(`<p class="multiline">${carePlan.comments ? carePlan.comments + extraLines : emptyLines}</p>`);
+      sections.push(`<p class="multiline">${carePlan.comments ? escapeHtml(carePlan.comments) + extraLines : emptyLines}</p>`);
     }
 
     return sections.join("\n");
@@ -503,7 +515,7 @@ export function PatientReportPrintDialog({
             {/* Preview */}
             {activeTab === "preview" && (
               <ScrollArea className="flex-1 min-h-0 border rounded-lg bg-card">
-                <div dangerouslySetInnerHTML={{ __html: previewHtml }} className="min-h-full" />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml) }} className="min-h-full" />
               </ScrollArea>
             )}
           </div>
