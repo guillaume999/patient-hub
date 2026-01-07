@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -155,7 +156,8 @@ export default function PatientBilanIntermediaire() {
 
         if (error) throw error;
       } else {
-        // Create new bilan
+        // Create new bilan with today's date
+        const todayDate = format(new Date(), "yyyy-MM-dd");
         const { data, error } = await supabase
           .from("patient_bilans")
           .insert({
@@ -164,6 +166,7 @@ export default function PatientBilanIntermediaire() {
             user_id: user.id,
             position_after_seance: position,
             content: bilanJson,
+            bilan_date: todayDate,
           })
           .select()
           .single();
