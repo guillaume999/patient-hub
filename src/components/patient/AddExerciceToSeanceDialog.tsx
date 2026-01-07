@@ -52,7 +52,7 @@ export function AddExerciceToSeanceDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [series, setSeries] = useState(3);
+  const [series, setSeries] = useState<number | null>(3);
   const [repetitions, setRepetitions] = useState<number | null>(10);
   const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
 
@@ -91,7 +91,7 @@ export function AddExerciceToSeanceDialog({
     setName("");
     setDescription("");
     setVideoUrl(null);
-    setSeries(3);
+    setSeries(null);
     setRepetitions(10);
     setDurationSeconds(null);
   };
@@ -353,10 +353,13 @@ export function AddExerciceToSeanceDialog({
                 <Label className="text-xs">Séries</Label>
                 <Input
                   type="number"
-                  min={1}
-                  value={series}
-                  onChange={(e) => setSeries(parseInt(e.target.value) || 1)}
+                  min={0}
+                  value={series ?? ""}
+                  onChange={(e) =>
+                    setSeries(e.target.value ? parseInt(e.target.value) : null)
+                  }
                   className="h-10"
+                  placeholder="—"
                 />
               </div>
               <div>

@@ -28,7 +28,7 @@ interface SeanceExerciceItem {
   description: string;
   repetitions: number | null;
   duration_seconds: number | null;
-  series: number;
+  series: number | null;
   ordre: number;
   video_url?: string | null;
   video_file?: File | null;
@@ -178,7 +178,7 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
         description: "",
         repetitions: null,
         duration_seconds: null,
-        series: 1,
+        series: null,
         ordre: exercices.length,
         video_url: null,
         video_file: null
@@ -708,9 +708,9 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
                             <Label className="text-xs">Séries</Label>
                             <Input
                               type="number"
-                              value={ex.series}
-                              onChange={(e) => updateExercice(index, "series", parseInt(e.target.value) || 1)}
-                              min={1}
+                              value={ex.series ?? ""}
+                              onChange={(e) => updateExercice(index, "series", e.target.value ? parseInt(e.target.value) : null)}
+                              placeholder="—"
                             />
                           </div>
                         </div>
