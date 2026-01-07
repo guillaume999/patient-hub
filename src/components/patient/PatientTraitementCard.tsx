@@ -617,6 +617,33 @@ export function PatientTraitementCard({
     }
   };
 
+  const handleMoveExercice = async (seanceTypeId: string, exercices: SeanceExercice[], currentIndex: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= exercices.length) return;
+
+    try {
+      const currentExercice = exercices[currentIndex];
+      const swapExercice = exercices[newIndex];
+
+      // Swap the ordre values
+      await Promise.all([
+        supabase
+          .from("seance_exercices")
+          .update({ ordre: newIndex + 1 })
+          .eq("id", currentExercice.id),
+        supabase
+          .from("seance_exercices")
+          .update({ ordre: currentIndex + 1 })
+          .eq("id", swapExercice.id)
+      ]);
+
+      fetchTraitementDetails();
+    } catch (error) {
+      console.error("Error reordering exercises:", error);
+      toast.error("Erreur lors de la réorganisation");
+    }
+  };
+
   const handlePrintBilan = (bilan: PatientBilan, seancePosition: number) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -1152,7 +1179,10 @@ export function PatientTraitementCard({
                                                   exercice={ex}
                                                   index={j}
                                                   seanceTypeId={seance.seance_type_id}
+                                                  totalExercices={exercices.length}
                                                   onUpdate={fetchTraitementDetails}
+                                                  onMoveUp={() => handleMoveExercice(seance.seance_type_id, exercices, j, 'up')}
+                                                  onMoveDown={() => handleMoveExercice(seance.seance_type_id, exercices, j, 'down')}
                                                 />
                                               ))}
                                             </div>
