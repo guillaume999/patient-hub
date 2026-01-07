@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { GenerateAccessCodeDialog } from "@/components/patient/GenerateAccessCodeDialog";
 import { SeanceFormDialog } from "@/components/seance/SeanceFormDialog";
 import { format } from "date-fns";
+import { ExerciceItemCard } from "@/components/patient/ExerciceItemCard";
 import { fr } from "date-fns/locale";
 import {
   AlertDialog,
@@ -46,6 +47,7 @@ interface SeanceExercice {
     title: string;
     video_url: string | null;
     thumbnail_url: string | null;
+    status?: string;
   } | null;
 }
 
@@ -196,7 +198,7 @@ export function PatientTraitementCard({
           (seancesData || []).map(async (seance) => {
             const { data: exercicesData } = await supabase
               .from("seance_exercices")
-              .select("*, exercices:exercice_id(id, title, video_url, thumbnail_url)")
+              .select("*, exercices:exercice_id(id, title, video_url, thumbnail_url, status)")
               .eq("seance_type_id", seance.seance_type_id)
               .order("ordre", { ascending: true });
             
@@ -961,108 +963,26 @@ export function PatientTraitementCard({
                                     
                                     {/* Collapsed content - Exercises list */}
                                     <CollapsibleContent>
-                                      <div className="px-3 pb-3 space-y-3 border-t border-border/50 pt-3">
-                                        {/* Exercices list */}
+                                      <div className="px-2 pb-2 space-y-2 border-t border-border/50 pt-2">
+                                        {/* Exercices list - grid for better space usage */}
                                         {exercices.length > 0 ? (
-                                          <div className="space-y-2">
-                                            {exercices.map((ex, j) => {
-                                              const thumbnailUrl = ex.exercice?.thumbnail_url || null;
-                                              const videoUrl = ex.exercice?.video_url || null;
-                                              const exerciceName = ex.exercice?.title || ex.name || `Exercice ${j + 1}`;
-                                              const hasVideo = thumbnailUrl || videoUrl;
-                                              
-                                              return (
-                                                <div 
-                                                  key={ex.id}
-                                                  className="bg-card rounded-xl border border-border shadow-sm overflow-hidden"
-                                                >
-                                                  {/* Mobile: Stack layout, Desktop: Horizontal */}
-                                                  <div className="flex flex-col sm:flex-row">
-                                                    {/* Thumbnail - Full width on mobile, fixed on desktop */}
-                                                    {hasVideo && (
-                                                      <div className="relative w-full sm:w-28 h-24 sm:h-20 flex-shrink-0 bg-muted">
-                                                        {thumbnailUrl ? (
-                                                          <img 
-                                                            src={thumbnailUrl} 
-                                                            alt={exerciceName}
-                                                            className="w-full h-full object-cover"
-                                                          />
-                                                        ) : videoUrl ? (
-                                                          <video 
-                                                            src={videoUrl}
-                                                            className="w-full h-full object-cover"
-                                                            muted
-                                                          />
-                                                        ) : null}
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/50 transition-colors cursor-pointer">
-                                                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                                                            <Play className="w-5 h-5 text-primary fill-primary ml-0.5" />
-                                                          </div>
-                                                        </div>
-                                                        {/* Order badge on thumbnail */}
-                                                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shadow-md">
-                                                          {j + 1}
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                    
-                                                    {/* Content */}
-                                                    <div className="flex-1 p-3">
-                                                      <div className="flex items-start gap-3">
-                                                        {/* Order number - only show if no thumbnail */}
-                                                        {!hasVideo && (
-                                                          <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                                            {j + 1}
-                                                          </div>
-                                                        )}
-                                                        
-                                                        <div className="flex-1 min-w-0">
-                                                          {/* Exercise name */}
-                                                          <p className="font-semibold text-sm sm:text-base leading-tight mb-2">{exerciceName}</p>
-                                                          
-                                                          {/* Stats row */}
-                                                          <div className="flex items-center gap-2 flex-wrap">
-                                                            {/* Series */}
-                                                            <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                                              <span className="text-sm font-bold">{ex.series || 1}</span>
-                                                              <span className="text-xs">série{(ex.series || 1) > 1 ? "s" : ""}</span>
-                                                            </div>
-                                                            
-                                                            {/* Repetitions */}
-                                                            {ex.repetitions && (
-                                                              <div className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
-                                                                <span className="text-sm font-bold">{ex.repetitions}</span>
-                                                                <span className="text-xs">reps</span>
-                                                              </div>
-                                                            )}
-                                                            
-                                                            {/* Duration */}
-                                                            {ex.duration_seconds && (
-                                                              <div className="inline-flex items-center gap-1 bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
-                                                                <span className="text-sm font-bold">{ex.duration_seconds}</span>
-                                                                <span className="text-xs">sec</span>
-                                                              </div>
-                                                            )}
-                                                          </div>
-                                                          
-                                                          {/* Description if exists */}
-                                                          {ex.description && (
-                                                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {exercices.map((ex, j) => (
+                                              <ExerciceItemCard
+                                                key={ex.id}
+                                                exercice={ex}
+                                                index={j}
+                                                seanceTypeId={seance.seance_type_id}
+                                                onUpdate={fetchTraitementDetails}
+                                              />
+                                            ))}
                                           </div>
                                         ) : (
                                           <p className="text-sm text-muted-foreground text-center py-4">Aucun exercice dans cette séance</p>
                                         )}
                                         
                                         {/* Seance actions */}
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border/30">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-border/30">
                                           <div className="flex items-center gap-2">
                                             <Switch
                                               id={`seance-visibility-${seance.id}`}
@@ -1082,7 +1002,7 @@ export function PatientTraitementCard({
                                           <Button 
                                             variant="outline" 
                                             size="sm" 
-                                            className="text-xs gap-1 h-9 sm:h-8 w-full sm:w-auto"
+                                            className="text-xs gap-1 h-8 w-full sm:w-auto"
                                             onClick={() => handleEditSeanceOriginal(seance)}
                                           >
                                             <Edit className="w-3 h-3" />
