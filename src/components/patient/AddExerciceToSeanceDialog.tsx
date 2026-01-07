@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,6 +56,10 @@ export function AddExerciceToSeanceDialog({
   const [series, setSeries] = useState<number | null>(3);
   const [repetitions, setRepetitions] = useState<number | null>(10);
   const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
+  const [force1, setForce1] = useState<number | null>(null);
+  const [durationSeconds2, setDurationSeconds2] = useState<number | null>(null);
+  const [force2, setForce2] = useState<number | null>(null);
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
     if (open && user) {
@@ -94,6 +99,10 @@ export function AddExerciceToSeanceDialog({
     setSeries(null);
     setRepetitions(10);
     setDurationSeconds(null);
+    setForce1(null);
+    setDurationSeconds2(null);
+    setForce2(null);
+    setComment("");
   };
 
   const handleExerciceSelect = (value: string) => {
@@ -191,6 +200,10 @@ export function AddExerciceToSeanceDialog({
         series: series,
         repetitions: repetitions,
         duration_seconds: durationSeconds,
+        force_1: force1,
+        duration_seconds_2: durationSeconds2,
+        force_2: force2,
+        comment: comment.trim() || null,
         ordre: currentExercicesCount + 1,
       });
 
@@ -347,7 +360,7 @@ export function AddExerciceToSeanceDialog({
               )}
             </div>
 
-            {/* Metrics */}
+            {/* Metrics - Row 1 */}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">Séries</Label>
@@ -390,6 +403,60 @@ export function AddExerciceToSeanceDialog({
                   placeholder="—"
                 />
               </div>
+            </div>
+
+            {/* Metrics - Row 2 */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Force</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={force1 ?? ""}
+                  onChange={(e) =>
+                    setForce1(e.target.value ? parseInt(e.target.value) : null)
+                  }
+                  className="h-10"
+                  placeholder="—"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Durée 2 (sec)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={durationSeconds2 ?? ""}
+                  onChange={(e) =>
+                    setDurationSeconds2(e.target.value ? parseInt(e.target.value) : null)
+                  }
+                  className="h-10"
+                  placeholder="—"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Force 2</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={force2 ?? ""}
+                  onChange={(e) =>
+                    setForce2(e.target.value ? parseInt(e.target.value) : null)
+                  }
+                  className="h-10"
+                  placeholder="—"
+                />
+              </div>
+            </div>
+
+            {/* Comment */}
+            <div>
+              <Label className="text-xs">Commentaire</Label>
+              <Textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="min-h-[60px]"
+                placeholder="Commentaire optionnel..."
+              />
             </div>
 
             {/* Actions */}
