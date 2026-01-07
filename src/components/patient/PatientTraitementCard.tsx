@@ -1499,6 +1499,7 @@ export function PatientTraitementCard({
           seanceTypeId={selectedSeanceForAddExercice.id}
           currentExercicesCount={selectedSeanceForAddExercice.count}
           onSuccess={fetchTraitementDetails}
+          patientName={patientName}
         />
       )}
 

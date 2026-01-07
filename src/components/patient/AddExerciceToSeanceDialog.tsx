@@ -40,6 +40,7 @@ interface AddExerciceToSeanceDialogProps {
   seanceTypeId: string;
   currentExercicesCount: number;
   onSuccess: () => void;
+  patientName?: string;
 }
 
 export function AddExerciceToSeanceDialog({
@@ -48,6 +49,7 @@ export function AddExerciceToSeanceDialog({
   seanceTypeId,
   currentExercicesCount,
   onSuccess,
+  patientName,
 }: AddExerciceToSeanceDialogProps) {
   const { user } = useAuth();
   const [availableExercices, setAvailableExercices] = useState<Exercice[]>([]);
@@ -380,8 +382,8 @@ export function AddExerciceToSeanceDialog({
         user_id: user.id,
         section: "seances",
         action_type: "edit",
-        title: `Exercice "${name.trim()}" ajouté`,
-        details: `Ajout de l'exercice à la séance`,
+        title: `Exercice "${name.trim()}" ajouté${patientName ? ` pour ${patientName}` : ""}`,
+        details: patientName ? `Ajout de l'exercice à la séance du patient ${patientName}` : `Ajout de l'exercice à la séance`,
         resource_id: seanceTypeId,
         resource_type: "seance_type",
       });
