@@ -1168,7 +1168,7 @@ export function PatientTraitementCard({
                                   </Collapsible>
 
                                   {/* Bilan after this session - same level as seance */}
-                                  {bilanAfterSeance ? (
+                                  {bilanAfterSeance && (
                                     <div className="bg-primary/5 rounded-lg border border-primary/20 p-3">
                                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1209,16 +1209,6 @@ export function PatientTraitementCard({
                                         </div>
                                       </div>
                                     </div>
-                                  ) : (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="w-full text-xs text-muted-foreground hover:text-primary h-9 justify-start gap-2 border border-dashed border-border/50"
-                                      onClick={() => navigate(`/patients/${patientId}/bilan-intermediaire?traitement=${traitement.id}&position=${i + 1}`)}
-                                    >
-                                      <Plus className="w-3 h-3" />
-                                      Ajouter un bilan après cette séance
-                                    </Button>
                                   )}
                                 </div>
                               );
