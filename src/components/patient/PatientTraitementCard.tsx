@@ -1081,19 +1081,41 @@ export function PatientTraitementCard({
                       )}
                     </div>
 
-                    {/* Actions */}
+                    {/* Add buttons section */}
+                    <div className="pt-4 border-t space-y-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                          setEditingSeance(null);
+                          setEditingSeanceIndex(null);
+                          setSeanceFormDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Ajouter une séance
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start gap-2"
+                        onClick={() => navigate(`/patients/${patientId}/bilan-intermediaire`)}
+                      >
+                        <FileText className="w-4 h-4" />
+                        Ajouter un bilan intermédiaire
+                      </Button>
+                    </div>
+
+                    {/* Visibility toggle */}
                     <div className="pt-4 border-t space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Switch
-                            id="visibility"
-                            checked={!traitement.is_hidden_from_list}
-                            onCheckedChange={toggleVisibility}
-                          />
-                          <Label htmlFor="visibility" className="text-sm cursor-pointer">
-                            Visible dans la page Traitements
-                          </Label>
-                        </div>
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          id="visibility"
+                          checked={!traitement.is_hidden_from_list}
+                          onCheckedChange={toggleVisibility}
+                        />
+                        <Label htmlFor="visibility" className="text-sm cursor-pointer">
+                          Visible dans la page Traitements
+                        </Label>
                       </div>
                     </div>
                 </div>
