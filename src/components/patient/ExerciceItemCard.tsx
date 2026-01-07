@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Play, Edit, Check, X, Upload, Video, Loader2, Pencil, Trash2, MessageSquare } from "lucide-react";
+import { Play, Edit, Check, X, Upload, Video, Loader2, Pencil, Trash2, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -47,14 +47,20 @@ interface ExerciceItemCardProps {
   };
   index: number;
   seanceTypeId: string;
+  totalExercices: number;
   onUpdate?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 export function ExerciceItemCard({ 
   exercice, 
   index, 
   seanceTypeId,
-  onUpdate 
+  totalExercices,
+  onUpdate,
+  onMoveUp,
+  onMoveDown
 }: ExerciceItemCardProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -332,6 +338,29 @@ export function ExerciceItemCard({
               )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Reorder buttons */}
+              <div className="flex flex-col">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-8 rounded-b-none"
+                  onClick={onMoveUp}
+                  disabled={index === 0}
+                  title="Monter"
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-8 rounded-t-none"
+                  onClick={onMoveDown}
+                  disabled={index === totalExercices - 1}
+                  title="Descendre"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
