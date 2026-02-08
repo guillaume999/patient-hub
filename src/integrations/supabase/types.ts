@@ -925,6 +925,7 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string | null
+          has_stripe_account: boolean | null
           id: string
           is_banned: boolean | null
           is_premium: boolean | null
@@ -945,6 +946,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string | null
+          has_stripe_account?: boolean | null
           id?: string
           is_banned?: boolean | null
           is_premium?: boolean | null
@@ -965,6 +967,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string | null
+          has_stripe_account?: boolean | null
           id?: string
           is_banned?: boolean | null
           is_premium?: boolean | null
@@ -1528,7 +1531,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_admin_view: {
+        Row: {
+          avatar_url: string | null
+          can_share: boolean | null
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          has_stripe_account: boolean | null
+          id: string | null
+          is_banned: boolean | null
+          is_premium: boolean | null
+          last_name: string | null
+          pseudo: string | null
+          specialty: string | null
+          subscription_end_date: string | null
+          subscription_tier:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          trial_end_date: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          can_share?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          has_stripe_account?: boolean | null
+          id?: string | null
+          is_banned?: boolean | null
+          is_premium?: boolean | null
+          last_name?: string | null
+          pseudo?: string | null
+          specialty?: string | null
+          subscription_end_date?: string | null
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          trial_end_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          can_share?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          has_stripe_account?: boolean | null
+          id?: string | null
+          is_banned?: boolean | null
+          is_premium?: boolean | null
+          last_name?: string | null
+          pseudo?: string | null
+          specialty?: string | null
+          subscription_end_date?: string | null
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          trial_end_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_create_item: {
