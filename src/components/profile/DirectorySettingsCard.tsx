@@ -212,6 +212,9 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
           website_url: e.website_url || "",
           photo_url: e.photo_url || "",
           photo_url_2: e.photo_url_2 || "",
+          phone: (e as any).phone || "",
+          email: (e as any).email || "",
+          doctolib_url: (e as any).doctolib_url || "",
         })));
       } else {
         setEntries([emptyEntry()]);
