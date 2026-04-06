@@ -134,6 +134,21 @@ function DirectoryEntryForm({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Téléphone</Label>
+          <Input value={entry.phone} onChange={(e) => onChange("phone", e.target.value)} placeholder="06 12 34 56 78" />
+        </div>
+        <div className="space-y-2">
+          <Label>Email</Label>
+          <Input value={entry.email} onChange={(e) => onChange("email", e.target.value)} placeholder="contact@exemple.fr" type="email" />
+        </div>
+        <div className="space-y-2">
+          <Label>Lien Doctolib</Label>
+          <Input value={entry.doctolib_url} onChange={(e) => onChange("doctolib_url", e.target.value)} placeholder="https://www.doctolib.fr/..." />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>URL photo 1</Label>
@@ -144,10 +159,6 @@ function DirectoryEntryForm({
           <Input value={entry.photo_url_2} onChange={(e) => onChange("photo_url_2", e.target.value)} placeholder="https://..." />
         </div>
       </div>
-
-      <div className="flex items-center gap-2">
-        <Button type="submit" disabled={saving} className="gradient-primary text-primary-foreground">
-          {saving ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Enregistrement...</>
           ) : (
             <><Save className="w-4 h-4 mr-2" />Enregistrer la fiche</>
