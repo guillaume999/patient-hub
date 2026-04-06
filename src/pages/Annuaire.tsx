@@ -107,7 +107,7 @@ export default function Annuaire() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les régions</SelectItem>
-              {frenchRegions.map((r) => (
+              {FRENCH_REGIONS.map((r) => (
                 <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>
               ))}
             </SelectContent>
