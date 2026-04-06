@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Brain, FileText, ArrowRight, Sparkles, ClipboardList, Calendar, Dumbbell, GraduationCap, Newspaper, Video, Megaphone } from "lucide-react";
+import { Users, Brain, FileText, ArrowRight, Sparkles, ClipboardList, Calendar, Dumbbell, GraduationCap, Newspaper, Video, Megaphone, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { PagePopup } from "@/components/popup/PagePopup";
 
