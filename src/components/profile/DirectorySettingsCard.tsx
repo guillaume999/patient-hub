@@ -28,6 +28,9 @@ interface DirectoryEntry {
   website_url: string;
   photo_url: string;
   photo_url_2: string;
+  phone: string;
+  email: string;
+  doctolib_url: string;
 }
 
 const emptyEntry = (): DirectoryEntry => ({
@@ -43,6 +46,9 @@ const emptyEntry = (): DirectoryEntry => ({
   website_url: "",
   photo_url: "",
   photo_url_2: "",
+  phone: "",
+  email: "",
+  doctolib_url: "",
 });
 
 function DirectoryEntryForm({
@@ -128,6 +134,21 @@ function DirectoryEntryForm({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Téléphone</Label>
+          <Input value={entry.phone} onChange={(e) => onChange("phone", e.target.value)} placeholder="06 12 34 56 78" />
+        </div>
+        <div className="space-y-2">
+          <Label>Email</Label>
+          <Input value={entry.email} onChange={(e) => onChange("email", e.target.value)} placeholder="contact@exemple.fr" type="email" />
+        </div>
+        <div className="space-y-2">
+          <Label>Lien Doctolib</Label>
+          <Input value={entry.doctolib_url} onChange={(e) => onChange("doctolib_url", e.target.value)} placeholder="https://www.doctolib.fr/..." />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>URL photo 1</Label>
@@ -195,6 +216,9 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
           website_url: e.website_url || "",
           photo_url: e.photo_url || "",
           photo_url_2: e.photo_url_2 || "",
+          phone: (e as any).phone || "",
+          email: (e as any).email || "",
+          doctolib_url: (e as any).doctolib_url || "",
         })));
       } else {
         setEntries([emptyEntry()]);
@@ -227,6 +251,9 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
         website_url: entry.website_url || null,
         photo_url: entry.photo_url || null,
         photo_url_2: entry.photo_url_2 || null,
+        phone: entry.phone || null,
+        email: entry.email || null,
+        doctolib_url: entry.doctolib_url || null,
       };
 
       let error;

@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, MapPin, ExternalLink, Facebook, Instagram, Linkedin, Globe, Settings } from "lucide-react";
+import { Search, MapPin, ExternalLink, Facebook, Instagram, Linkedin, Globe, Settings, Phone, Mail } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FRENCH_REGIONS } from "@/lib/french-regions";
@@ -26,6 +26,9 @@ interface DirectoryEntry {
   website_url: string | null;
   photo_url: string | null;
   photo_url_2: string | null;
+  phone: string | null;
+  email: string | null;
+  doctolib_url: string | null;
   profile?: {
     first_name: string | null;
     last_name: string | null;
@@ -59,6 +62,9 @@ export default function Annuaire() {
         website_url: d.website_url,
         photo_url: d.photo_url,
         photo_url_2: d.photo_url_2,
+        phone: d.phone,
+        email: d.email,
+        doctolib_url: d.doctolib_url,
         profile: {
           first_name: d.first_name,
           last_name: d.last_name,
@@ -223,14 +229,29 @@ export default function Annuaire() {
                             ))}
                           </TabsList>
                           {userEntries.map((e, i) => (
-                            <TabsContent key={e.id} value={String(i)} className="mt-2">
+                            <TabsContent key={e.id} value={String(i)} className="mt-2 space-y-1">
                               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                                 <span>{[e.city, e.departement, e.region].filter(Boolean).join(", ")}</span>
                               </div>
+                              {e.phone && (
+                                <a href={`tel:${e.phone}`} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                                  <Phone className="w-3.5 h-3.5 shrink-0" />{e.phone}
+                                </a>
+                              )}
+                              {e.email && (
+                                <a href={`mailto:${e.email}`} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                                  <Mail className="w-3.5 h-3.5 shrink-0" />{e.email}
+                                </a>
+                              )}
+                              {e.doctolib_url && (
+                                <a href={e.doctolib_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                  <ExternalLink className="w-3 h-3" /> Doctolib
+                                </a>
+                              )}
                               {e.google_maps_link && (
-                                <a href={e.google_maps_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
-                                  <ExternalLink className="w-3 h-3" /> Voir sur Google Maps
+                                <a href={e.google_maps_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                  <ExternalLink className="w-3 h-3" /> Google Maps
                                 </a>
                               )}
                             </TabsContent>
@@ -244,9 +265,24 @@ export default function Annuaire() {
                               <span>{[first.city, first.departement, first.region].filter(Boolean).join(", ")}</span>
                             </div>
                           )}
+                          {first.phone && (
+                            <a href={`tel:${first.phone}`} className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                              <Phone className="w-3.5 h-3.5 shrink-0" />{first.phone}
+                            </a>
+                          )}
+                          {first.email && (
+                            <a href={`mailto:${first.email}`} className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                              <Mail className="w-3.5 h-3.5 shrink-0" />{first.email}
+                            </a>
+                          )}
+                          {first.doctolib_url && (
+                            <a href={first.doctolib_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
+                              <ExternalLink className="w-3 h-3" /> Doctolib
+                            </a>
+                          )}
                           {first.google_maps_link && (
                             <a href={first.google_maps_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
-                              <ExternalLink className="w-3 h-3" /> Voir sur Google Maps
+                              <ExternalLink className="w-3 h-3" /> Google Maps
                             </a>
                           )}
                         </>

@@ -923,12 +923,15 @@ export type Database = {
           city: string | null
           created_at: string
           departement: string | null
+          doctolib_url: string | null
+          email: string | null
           facebook_url: string | null
           google_maps_link: string | null
           id: string
           instagram_url: string | null
           is_visible: boolean
           linkedin_url: string | null
+          phone: string | null
           photo_url: string | null
           photo_url_2: string | null
           region: string | null
@@ -940,12 +943,15 @@ export type Database = {
           city?: string | null
           created_at?: string
           departement?: string | null
+          doctolib_url?: string | null
+          email?: string | null
           facebook_url?: string | null
           google_maps_link?: string | null
           id?: string
           instagram_url?: string | null
           is_visible?: boolean
           linkedin_url?: string | null
+          phone?: string | null
           photo_url?: string | null
           photo_url_2?: string | null
           region?: string | null
@@ -957,12 +963,15 @@ export type Database = {
           city?: string | null
           created_at?: string
           departement?: string | null
+          doctolib_url?: string | null
+          email?: string | null
           facebook_url?: string | null
           google_maps_link?: string | null
           id?: string
           instagram_url?: string | null
           is_visible?: boolean
           linkedin_url?: string | null
+          phone?: string | null
           photo_url?: string | null
           photo_url_2?: string | null
           region?: string | null
@@ -1599,6 +1608,8 @@ export type Database = {
           avatar_url: string
           city: string
           departement: string
+          doctolib_url: string
+          email: string
           facebook_url: string
           first_name: string
           google_maps_link: string
@@ -1606,6 +1617,7 @@ export type Database = {
           instagram_url: string
           last_name: string
           linkedin_url: string
+          phone: string
           photo_url: string
           photo_url_2: string
           pseudo: string
