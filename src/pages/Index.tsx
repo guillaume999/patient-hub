@@ -5,6 +5,7 @@ import { Users, Brain, FileText, ArrowRight, Sparkles, ClipboardList, Calendar, 
 import { useAuth } from "@/lib/auth";
 import { PagePopup } from "@/components/popup/PagePopup";
 
+// Features that require authentication
 const features = [
   {
     title: "Patients",
@@ -31,42 +32,34 @@ const features = [
     bgColor: "bg-emerald-500/10",
   },
   {
-    title: "News",
-    description: "Les dernières actualités de PhysioOffice",
-    icon: Newspaper,
-    href: "/news",
+    title: "Exercices",
+    description: "Bibliothèque d'exercices de rééducation",
+    icon: Dumbbell,
+    href: "/exercices",
+    color: "from-violet-500 to-purple-500",
+    bgColor: "bg-violet-500/10",
+  },
+  {
+    title: "Planning",
+    description: "Organisez vos rendez-vous et votre emploi du temps",
+    icon: Calendar,
+    href: "/planning",
     color: "from-pink-500 to-rose-500",
     bgColor: "bg-pink-500/10",
   },
   {
-    title: "Séance",
-    description: "Modèles de séances prédéfinies",
-    icon: Calendar,
-    href: "/seance-type",
-    color: "from-indigo-500 to-violet-500",
-    bgColor: "bg-indigo-500/10",
-  },
-  {
-    title: "Exercices",
-    description: "Gérez vos exercices de rééducation",
-    icon: Dumbbell,
-    href: "/exercices",
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-500/10",
-  },
-  {
     title: "Vidéos",
-    description: "Accédez à votre vidéothèque personnelle",
+    description: "Votre vidéothèque de techniques et exercices",
     icon: Video,
     href: "/videos",
-    color: "from-cyan-500 to-sky-500",
-    bgColor: "bg-cyan-500/10",
+    color: "from-red-500 to-orange-500",
+    bgColor: "bg-red-500/10",
   },
   {
-    title: "TTT",
-    description: "Modèles de traitements standardisés",
-    icon: ClipboardList,
-    href: "/traitement-type",
+    title: "Actualités",
+    description: "Suivez les dernières nouvelles de la plateforme",
+    icon: Newspaper,
+    href: "/news",
     color: "from-rose-500 to-red-500",
     bgColor: "bg-rose-500/10",
   },
@@ -93,6 +86,7 @@ const features = [
     href: "/annuaire",
     color: "from-teal-500 to-cyan-500",
     bgColor: "bg-teal-500/10",
+    public: true,
   },
 ];
 
