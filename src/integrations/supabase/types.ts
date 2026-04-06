@@ -918,6 +918,60 @@ export type Database = {
         }
         Relationships: []
       }
+      practitioner_directory: {
+        Row: {
+          city: string | null
+          created_at: string
+          departement: string | null
+          facebook_url: string | null
+          google_maps_link: string | null
+          id: string
+          instagram_url: string | null
+          is_visible: boolean
+          linkedin_url: string | null
+          photo_url: string | null
+          photo_url_2: string | null
+          region: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          departement?: string | null
+          facebook_url?: string | null
+          google_maps_link?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_visible?: boolean
+          linkedin_url?: string | null
+          photo_url?: string | null
+          photo_url_2?: string | null
+          region?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          departement?: string | null
+          facebook_url?: string | null
+          google_maps_link?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_visible?: boolean
+          linkedin_url?: string | null
+          photo_url?: string | null
+          photo_url_2?: string | null
+          region?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
