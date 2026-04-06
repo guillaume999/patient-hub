@@ -32,6 +32,13 @@ const features = [
     bgColor: "bg-emerald-500/10",
   },
   {
+    title: "Séances",
+    description: "Créez et gérez vos séances de rééducation",
+    icon: ClipboardList,
+    href: "/seances",
+    color: "from-indigo-500 to-blue-500",
+    bgColor: "bg-indigo-500/10",
+  {
     title: "Exercices",
     description: "Bibliothèque d'exercices de rééducation",
     icon: Dumbbell,
