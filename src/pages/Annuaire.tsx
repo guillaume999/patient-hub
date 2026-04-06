@@ -62,6 +62,9 @@ export default function Annuaire() {
         website_url: d.website_url,
         photo_url: d.photo_url,
         photo_url_2: d.photo_url_2,
+        phone: d.phone,
+        email: d.email,
+        doctolib_url: d.doctolib_url,
         profile: {
           first_name: d.first_name,
           last_name: d.last_name,
