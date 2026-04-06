@@ -86,6 +86,14 @@ const features = [
     color: "from-yellow-500 to-orange-500",
     bgColor: "bg-yellow-500/10",
   },
+  {
+    title: "Annuaire",
+    description: "Trouvez un kinésithérapeute près de chez vous",
+    icon: BookOpen,
+    href: "/annuaire",
+    color: "from-teal-500 to-cyan-500",
+    bgColor: "bg-teal-500/10",
+  },
 ];
 
 export default function Index() {
