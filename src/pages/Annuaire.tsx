@@ -35,6 +35,7 @@ interface DirectoryEntry {
 }
 
 export default function Annuaire() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [deptFilter, setDeptFilter] = useState<string>("all");
