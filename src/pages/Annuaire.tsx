@@ -26,6 +26,9 @@ interface DirectoryEntry {
   website_url: string | null;
   photo_url: string | null;
   photo_url_2: string | null;
+  phone: string | null;
+  email: string | null;
+  doctolib_url: string | null;
   profile?: {
     first_name: string | null;
     last_name: string | null;
