@@ -29,6 +29,7 @@ import Planning from "./pages/Planning";
 import Formation from "./pages/Formation";
 import News from "./pages/News";
 import Annonces from "./pages/Annonces";
+import Annuaire from "./pages/Annuaire";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/formation" element={<Formation />} />
             <Route path="/news" element={<News />} />
             <Route path="/annonces" element={<Annonces />} />
+            <Route path="/annuaire" element={<Annuaire />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
