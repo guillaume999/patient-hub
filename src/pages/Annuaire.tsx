@@ -265,9 +265,24 @@ export default function Annuaire() {
                               <span>{[first.city, first.departement, first.region].filter(Boolean).join(", ")}</span>
                             </div>
                           )}
+                          {first.phone && (
+                            <a href={`tel:${first.phone}`} className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                              <Phone className="w-3.5 h-3.5 shrink-0" />{first.phone}
+                            </a>
+                          )}
+                          {first.email && (
+                            <a href={`mailto:${first.email}`} className="flex items-center gap-1 mt-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                              <Mail className="w-3.5 h-3.5 shrink-0" />{first.email}
+                            </a>
+                          )}
+                          {first.doctolib_url && (
+                            <a href={first.doctolib_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
+                              <ExternalLink className="w-3 h-3" /> Doctolib
+                            </a>
+                          )}
                           {first.google_maps_link && (
                             <a href={first.google_maps_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
-                              <ExternalLink className="w-3 h-3" /> Voir sur Google Maps
+                              <ExternalLink className="w-3 h-3" /> Google Maps
                             </a>
                           )}
                         </>
