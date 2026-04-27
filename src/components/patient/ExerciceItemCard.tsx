@@ -595,11 +595,19 @@ export function ExerciceItemCard({
             {/* Title */}
             <div>
               <Label className="text-xs">Titre</Label>
-              <Input
+              <SearchableExerciceTitleInput
                 value={editValues.name}
-                onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                className="h-9 text-sm"
-                placeholder="Nom de l'exercice"
+                onChange={(v) => setEditValues({ ...editValues, name: v })}
+                onSelectExercice={(ex) => {
+                  setEditValues({
+                    ...editValues,
+                    name: ex.title,
+                    description: ex.description || "",
+                    video_url: ex.video_url || null,
+                    thumbnail_url: ex.thumbnail_url || null,
+                  });
+                }}
+                options={availableExercices}
               />
             </div>
 
@@ -611,6 +619,16 @@ export function ExerciceItemCard({
                 onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
                 className="h-9 text-sm"
                 placeholder="Description optionnelle"
+              />
+            </div>
+
+            {/* Pathologies */}
+            <div>
+              <Label className="text-xs">Pathologies</Label>
+              <PathologySearchInput
+                selected={pathologieTags}
+                onChange={setPathologieTags}
+                options={availablePathologies}
               />
             </div>
 
