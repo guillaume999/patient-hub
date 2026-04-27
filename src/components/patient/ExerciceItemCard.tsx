@@ -367,10 +367,11 @@ export function ExerciceItemCard({
       if (error) throw error;
 
       // If there's a linked exercise and content was modified, update it
-      if (exercice.exercice_id && contentModified) {
+      if (exercice.exercice_id && (contentModified || pathologieTags.length >= 0)) {
         const updateData: any = {
           title: editValues.name,
           description: editValues.description || null,
+          pathologie_tags: pathologieTags,
         };
         
         if (videoChanged) {
@@ -378,8 +379,10 @@ export function ExerciceItemCard({
           updateData.thumbnail_url = editValues.thumbnail_url;
         }
         
-        // Set status to draft to hide from exercise list
-        updateData.status = "draft";
+        // Reset status to draft only when actual content changed (not just pathology tags)
+        if (contentModified) {
+          updateData.status = "draft";
+        }
         
         const { error: exerciceError } = await supabase
           .from("exercices")
@@ -388,9 +391,16 @@ export function ExerciceItemCard({
 
         if (exerciceError) {
           console.error("Error updating exercise:", exerciceError);
-        } else {
+        } else if (contentModified) {
           // Update local visibility state
           setIsVisible(false);
+        }
+      }
+
+      // Persist any newly-typed pathologies to the user's library
+      for (const patho of pathologieTags) {
+        if (!availablePathologies.includes(patho)) {
+          await supabase.from("pathologies").insert({ user_id: user!.id, name: patho });
         }
       }
       
