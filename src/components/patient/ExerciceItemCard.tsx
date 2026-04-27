@@ -22,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { CommentDialog } from "./CommentDialog";
+import { SearchableExerciceTitleInput, ExerciceOption } from "./SearchableExerciceTitleInput";
+import { PathologySearchInput } from "./PathologySearchInput";
 
 interface VideoLibraryItem {
   id: string;
@@ -93,6 +95,46 @@ export function ExerciceItemCard({
   const [libraryVideos, setLibraryVideos] = useState<VideoLibraryItem[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
+
+  // Search state for existing exercises and pathologies
+  const [availableExercices, setAvailableExercices] = useState<ExerciceOption[]>([]);
+  const [availablePathologies, setAvailablePathologies] = useState<string[]>([]);
+  const [pathologieTags, setPathologieTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isEditing || !user) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: exData }, { data: pathoData }] = await Promise.all([
+        supabase
+          .from("exercices")
+          .select("id, code, title, description, video_url, thumbnail_url, pathologie_tags")
+          .eq("user_id", user.id)
+          .order("title"),
+        supabase
+          .from("pathologies")
+          .select("name")
+          .eq("user_id", user.id),
+      ]);
+      if (cancelled) return;
+      setAvailableExercices((exData as ExerciceOption[]) || []);
+      setAvailablePathologies([
+        ...new Set((pathoData?.map((p: { name: string }) => p.name) || [])),
+      ]);
+      // Pre-load existing pathology tags from the linked exercise
+      if (exercice.exercice_id) {
+        const linked = (exData as Array<{ id: string; pathologie_tags?: string[] | null }> | null)?.find(
+          (e) => e.id === exercice.exercice_id
+        );
+        setPathologieTags(linked?.pathologie_tags || []);
+      } else {
+        setPathologieTags([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditing, user, exercice.exercice_id]);
   
   // Check if exercise is shared/platform (visible in exercise list)
   const isSharedOrPlatform = exercice.exercice?.status === "shared" || exercice.exercice?.status === "pending";
@@ -325,10 +367,11 @@ export function ExerciceItemCard({
       if (error) throw error;
 
       // If there's a linked exercise and content was modified, update it
-      if (exercice.exercice_id && contentModified) {
+      if (exercice.exercice_id && (contentModified || pathologieTags.length >= 0)) {
         const updateData: any = {
           title: editValues.name,
           description: editValues.description || null,
+          pathologie_tags: pathologieTags,
         };
         
         if (videoChanged) {
@@ -336,8 +379,10 @@ export function ExerciceItemCard({
           updateData.thumbnail_url = editValues.thumbnail_url;
         }
         
-        // Set status to draft to hide from exercise list
-        updateData.status = "draft";
+        // Reset status to draft only when actual content changed (not just pathology tags)
+        if (contentModified) {
+          updateData.status = "draft";
+        }
         
         const { error: exerciceError } = await supabase
           .from("exercices")
@@ -346,9 +391,16 @@ export function ExerciceItemCard({
 
         if (exerciceError) {
           console.error("Error updating exercise:", exerciceError);
-        } else {
+        } else if (contentModified) {
           // Update local visibility state
           setIsVisible(false);
+        }
+      }
+
+      // Persist any newly-typed pathologies to the user's library
+      for (const patho of pathologieTags) {
+        if (!availablePathologies.includes(patho)) {
+          await supabase.from("pathologies").insert({ user_id: user!.id, name: patho });
         }
       }
       
@@ -553,11 +605,19 @@ export function ExerciceItemCard({
             {/* Title */}
             <div>
               <Label className="text-xs">Titre</Label>
-              <Input
+              <SearchableExerciceTitleInput
                 value={editValues.name}
-                onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                className="h-9 text-sm"
-                placeholder="Nom de l'exercice"
+                onChange={(v) => setEditValues({ ...editValues, name: v })}
+                onSelectExercice={(ex) => {
+                  setEditValues({
+                    ...editValues,
+                    name: ex.title,
+                    description: ex.description || "",
+                    video_url: ex.video_url || null,
+                    thumbnail_url: ex.thumbnail_url || null,
+                  });
+                }}
+                options={availableExercices}
               />
             </div>
 
@@ -569,6 +629,16 @@ export function ExerciceItemCard({
                 onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
                 className="h-9 text-sm"
                 placeholder="Description optionnelle"
+              />
+            </div>
+
+            {/* Pathologies */}
+            <div>
+              <Label className="text-xs">Pathologies</Label>
+              <PathologySearchInput
+                selected={pathologieTags}
+                onChange={setPathologieTags}
+                options={availablePathologies}
               />
             </div>
 
