@@ -29,6 +29,21 @@ serve(async (req) => {
     if (!priceId) throw new Error("Price ID is required");
     logStep("Price ID received", { priceId });
 
+    // Validate priceId against known valid prices
+    const VALID_PRICE_IDS = new Set([
+      "price_1Sj6inBpgDWDQoCJIeQFcCOy",
+      "price_1Sj6guBpgDWDQoCJOrqbnJvy",
+      "price_1Sj6fABpgDWDQoCJdiVEtGHx",
+      "price_1Sj6elBpgDWDQoCJUQ2dOYR3",
+    ]);
+    if (!VALID_PRICE_IDS.has(priceId)) {
+      logStep("Invalid price ID rejected", { priceId });
+      return new Response(JSON.stringify({ error: "Invalid price ID" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);

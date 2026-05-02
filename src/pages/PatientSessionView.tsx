@@ -77,15 +77,7 @@ export default function PatientSessionView() {
     try {
       // Validate the access code
       const { data: accessResult, error: accessError } = await supabase
-        .from("patient_session_access")
-        .select(`
-          id,
-          seance_type_id,
-          patient_id,
-          expires_at
-        `)
-        .eq("access_code", accessCode.trim().toUpperCase())
-        .gt("expires_at", new Date().toISOString())
+        .rpc("get_session_by_access_code", { _code: accessCode.trim().toUpperCase() })
         .maybeSingle();
 
       if (accessError) throw accessError;
