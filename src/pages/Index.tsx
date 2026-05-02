@@ -90,7 +90,7 @@ export default function Index() {
 
           <div className="flex flex-col gap-6 md:gap-8 max-w-4xl mx-auto">
             {featureGroups.map((group, groupIndex) => (
-              <div key={group.label} className="rounded-2xl border-2 border-border bg-card/50 p-4 md:p-6 animate-fade-up" style={{ animationDelay: `${groupIndex * 0.15}s` }}>
+              <div key={group.label} className="rounded-2xl border-2 border-border bg-card/50 p-4 md:p-6">
                 <h3 className="text-lg md:text-xl font-display font-semibold mb-4 text-foreground">{group.label}</h3>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   {group.items.map((feature, index) => (
