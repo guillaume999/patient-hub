@@ -77,7 +77,7 @@ export default function Index() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-12 md:py-20 bg-muted/30">
+      <div className="py-12 md:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
             <h2 className="text-2xl md:text-4xl font-display font-bold mb-4">
@@ -89,36 +89,39 @@ export default function Index() {
           </div>
 
           <div className="flex flex-col gap-6 md:gap-8 max-w-4xl mx-auto">
-            {featureGroups.map((group, groupIndex) => (
+            {featureGroups.map((group) => (
               <div key={group.label} className="rounded-2xl border-2 border-border bg-card/50 p-4 md:p-6">
                 <h3 className="text-lg md:text-xl font-display font-semibold mb-4 text-foreground">{group.label}</h3>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
-                  {group.items.map((feature, index) => (
-                    <Link
-                      key={feature.title}
-                      to={user || (feature as any).public ? feature.href : "/auth"}
-                      className="group"
-                    >
-                      <Card className="h-full border-2 border-transparent hover:border-primary/20 transition-all duration-300 hover:shadow-soft group-hover:-translate-y-1">
-                        <CardHeader className="flex flex-col md:flex-row items-start gap-3 md:gap-4 p-4 md:p-6">
-                          <div className={`p-2 md:p-3 rounded-xl ${feature.bgColor}`}>
-                            <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center`}>
-                              <feature.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  {group.items.map((feature) => {
+                    const Icon = feature.icon;
+                    return (
+                      <Link
+                        key={feature.title}
+                        to={user || (feature as any).public ? feature.href : "/auth"}
+                        className="group"
+                      >
+                        <Card className="h-full border-2 border-transparent hover:border-primary/20 transition-all duration-300 hover:shadow-soft group-hover:-translate-y-1">
+                          <CardHeader className="flex flex-col md:flex-row items-start gap-3 md:gap-4 p-4 md:p-6">
+                            <div className={`p-2 md:p-3 rounded-xl ${feature.bgColor}`}>
+                              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center`}>
+                                <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-sm md:text-xl font-display group-hover:text-primary transition-colors leading-tight">
-                              {feature.title}
-                            </CardTitle>
-                            <CardDescription className="mt-1 md:mt-2 text-xs md:text-sm line-clamp-2">
-                              {feature.description}
-                            </CardDescription>
-                          </div>
-                          <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all hidden md:block" />
-                        </CardHeader>
-                      </Card>
-                    </Link>
-                  ))}
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-sm md:text-xl font-display group-hover:text-primary transition-colors leading-tight">
+                                {feature.title}
+                              </CardTitle>
+                              <CardDescription className="mt-1 md:mt-2 text-xs md:text-sm line-clamp-2">
+                                {feature.description}
+                              </CardDescription>
+                            </div>
+                            <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all hidden md:block" />
+                          </CardHeader>
+                        </Card>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -132,7 +135,7 @@ export default function Index() {
             </div>
           )}
         </div>
-      </section>
+      </div>
 
       {/* CTA Section */}
       <section className="py-20">
