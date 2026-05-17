@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 interface BilanData {
+  objectif_intermediaire: string;
   douleur_localisation: string;
   douleur_intensite: string;
   douleur_type: string;
