@@ -38,6 +38,7 @@ export default function PatientBilanIntermediaire() {
   const [existingBilanId, setExistingBilanId] = useState<string | null>(bilanId);
 
   const [bilan, setBilan] = useState<BilanData>({
+    objectif_intermediaire: "",
     douleur_localisation: "",
     douleur_intensite: "",
     douleur_type: "",
