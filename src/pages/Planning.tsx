@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, Printer, Plus, Trash2, X, Copy, Share2 } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, Printer, Plus, Trash2, X, Copy, Share2, Pencil } from "lucide-react";
 import { ShareResourceDialog } from "@/components/sharing/ShareResourceDialog";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay, setHours, setMinutes, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -60,6 +60,7 @@ export default function Planning() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [appointmentNotes, setAppointmentNotes] = useState("");
   const [duration, setDuration] = useState<number>(30);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [duplicateMode, setDuplicateMode] = useState<"day" | "week">("week");
   const [sourceDate, setSourceDate] = useState<Date | undefined>(new Date());
@@ -124,6 +125,19 @@ export default function Planning() {
     setSelectedPatientId("");
     setAppointmentNotes("");
     setDuration(30);
+    setEditingAppointmentId(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditAppointment = (apt: Appointment) => {
+    const start = parseISO(apt.start_time);
+    const end = parseISO(apt.end_time);
+    const durMin = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000));
+    setSelectedSlot({ date: start, time: { hours: start.getHours(), minutes: start.getMinutes() } });
+    setSelectedPatientId(apt.patient_id);
+    setAppointmentNotes(apt.notes || "");
+    setDuration(durMin);
+    setEditingAppointmentId(apt.id);
     setIsDialogOpen(true);
   };
 
@@ -136,20 +150,39 @@ export default function Planning() {
     const startTime = setMinutes(setHours(selectedSlot.date, selectedSlot.time.hours), selectedSlot.time.minutes);
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
-    const { error } = await supabase.from("appointments").insert({
-      user_id: user?.id,
-      patient_id: selectedPatientId,
-      start_time: startTime.toISOString(),
-      end_time: endTime.toISOString(),
-      notes: appointmentNotes || null,
-    });
-
-    if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    if (editingAppointmentId) {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          patient_id: selectedPatientId,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          notes: appointmentNotes || null,
+        })
+        .eq("id", editingAppointmentId);
+      if (error) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Rendez-vous modifié" });
+        setIsDialogOpen(false);
+        setEditingAppointmentId(null);
+        fetchAppointments();
+      }
     } else {
-      toast({ title: "Rendez-vous créé" });
-      setIsDialogOpen(false);
-      fetchAppointments();
+      const { error } = await supabase.from("appointments").insert({
+        user_id: user?.id,
+        patient_id: selectedPatientId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        notes: appointmentNotes || null,
+      });
+      if (error) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Rendez-vous créé" });
+        setIsDialogOpen(false);
+        fetchAppointments();
+      }
     }
   };
 
