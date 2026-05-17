@@ -444,6 +444,24 @@ export default function PatientBilanInitial() {
             </CardContent>
           </Card>
 
+          {/* Histoire du patient */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Histoire du patient
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Histoire complète du patient : antécédents personnels et familiaux, événements de vie marquants, habitudes, contexte socio-professionnel..."
+                value={bilan.histoire_patient}
+                onChange={(e) => handleChange("histoire_patient", e.target.value)}
+                className="mt-1 min-h-[120px]"
+              />
+            </CardContent>
+          </Card>
+
           {/* Histoire */}
           <Card>
             <CardHeader>
