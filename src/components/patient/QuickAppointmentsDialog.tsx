@@ -170,7 +170,7 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
           objectifs_principaux: templateSeance.objectifs_principaux,
           objectifs_secondaires: templateSeance.objectifs_secondaires,
           comment: templateSeance.comment,
-          is_hidden_from_list: true,
+          is_hidden_from_list: false,
           is_shared: false,
           is_copy: true,
         })
