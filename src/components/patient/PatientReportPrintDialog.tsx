@@ -309,12 +309,23 @@ export function PatientReportPrintDialog({
             const dateStr = bilan.bilan_date 
               ? new Date(bilan.bilan_date).toLocaleDateString("fr-FR") 
               : "____/____/________";
-            
+            let objectifInter = "-";
+            if (bilan.content) {
+              try {
+                const parsed = JSON.parse(bilan.content);
+                if (parsed && typeof parsed === "object" && parsed.objectif_intermediaire) {
+                  objectifInter = escapeHtml(String(parsed.objectif_intermediaire));
+                }
+              } catch {
+                // content is not JSON, ignore
+              }
+            }
+
             sections.push(`<tr style="background: #f9f9f9;">`);
             sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">-</td>`);
             sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">Bilan intermédiaire</td>`);
             sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">${dateStr}</td>`);
-            sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">-</td>`);
+            sections.push(`<td style="border: 1px solid #ddd; padding: 8px; font-style: italic;">${objectifInter}</td>`);
             sections.push(`</tr>`);
           }
         });
