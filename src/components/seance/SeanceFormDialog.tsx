@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { SearchableCreatableSelect } from "./SearchableCreatableSelect";
 import { Plus, X, GripVertical, Trash2, Upload, Video, Loader2, Pencil, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -452,16 +452,12 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
               ))}
             </div>
             <div className="flex gap-2">
-              <Select onValueChange={addPathologie}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Sélectionner une pathologie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePathologies.filter(p => !pathologies.includes(p)).map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCreatableSelect
+                options={availablePathologies.filter((p) => !pathologies.includes(p))}
+                onSelect={addPathologie}
+                placeholder="Rechercher une pathologie"
+                className="flex-1"
+              />
               <Input
                 placeholder="Ou créer une nouvelle..."
                 value={newPathologie}
@@ -487,16 +483,12 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
               ))}
             </div>
             <div className="flex gap-2">
-              <Select onValueChange={addObjectifPrincipal}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Sélectionner un objectif" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableObjectifsPrincipaux.filter(o => !objectifsPrincipaux.includes(o)).map(o => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCreatableSelect
+                options={availableObjectifsPrincipaux.filter((o) => !objectifsPrincipaux.includes(o))}
+                onSelect={addObjectifPrincipal}
+                placeholder="Rechercher un objectif"
+                className="flex-1"
+              />
               <Input
                 placeholder="Ou créer un nouveau..."
                 value={newObjectifPrincipal}
@@ -522,16 +514,12 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
               ))}
             </div>
             <div className="flex gap-2">
-              <Select onValueChange={addObjectifSecondaire}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Sélectionner un objectif" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableObjectifsSecondaires.filter(o => !objectifsSecondaires.includes(o)).map(o => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCreatableSelect
+                options={availableObjectifsSecondaires.filter((o) => !objectifsSecondaires.includes(o))}
+                onSelect={addObjectifSecondaire}
+                placeholder="Rechercher un objectif"
+                className="flex-1"
+              />
               <Input
                 placeholder="Ou créer un nouveau..."
                 value={newObjectifSecondaire}
