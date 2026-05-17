@@ -384,6 +384,14 @@ export function PatientReportPrintDialog({
               margin-top: 60px;
               text-align: right;
             }
+            .print-footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 11px;
+              color: #888;
+              border-top: 1px solid #ddd;
+              padding-top: 10px;
+            }
             @media print {
               body { padding: 20px; }
             }
@@ -394,6 +402,7 @@ export function PatientReportPrintDialog({
           ${generatePreviewContent()}
           ${dateSection}
           <div class="signature">Signature :</div>
+          <div class="print-footer">Imprimé avec PhysioOffice — kine-ajaccio.fr</div>
         </body>
       </html>
     `;
@@ -414,6 +423,7 @@ export function PatientReportPrintDialog({
       ${generatePreviewContent()}
       ${options.includeDate ? `<div style="margin-top: 30px; text-align: right; font-style: italic;">Date : ${new Date().toLocaleDateString("fr-FR")}</div>` : ""}
       <div style="margin-top: 40px; text-align: right;">Signature :</div>
+      <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #888; border-top: 1px solid #ddd; padding-top: 8px;">Imprimé avec PhysioOffice — kine-ajaccio.fr</div>
     </div>
   `;
 
