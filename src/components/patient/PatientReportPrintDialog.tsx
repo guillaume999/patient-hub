@@ -423,6 +423,7 @@ export function PatientReportPrintDialog({
       ${generatePreviewContent()}
       ${options.includeDate ? `<div style="margin-top: 30px; text-align: right; font-style: italic;">Date : ${new Date().toLocaleDateString("fr-FR")}</div>` : ""}
       <div style="margin-top: 40px; text-align: right;">Signature :</div>
+      <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #888; border-top: 1px solid #ddd; padding-top: 8px;">Imprimé avec PhysioOffice — kine-ajaccio.fr</div>
     </div>
   `;
 
