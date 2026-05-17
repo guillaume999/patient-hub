@@ -402,6 +402,7 @@ export function PatientReportPrintDialog({
           ${generatePreviewContent()}
           ${dateSection}
           <div class="signature">Signature :</div>
+          <div class="print-footer">Imprimé avec PhysioOffice — kine-ajaccio.fr</div>
         </body>
       </html>
     `;
