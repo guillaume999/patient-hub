@@ -113,7 +113,19 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       .order("ordre", { ascending: false });
 
     const templateSeanceTypeId = existing && existing.length > 0 ? existing[0].seance_type_id : null;
-    const currentMaxOrdre = existing && existing.length > 0 ? existing[0].ordre : 0;
+    const maxTraitementOrdre = existing && existing.length > 0 ? existing[0].ordre : 0;
+
+    // Also check existing date rows so we don't collide with the unique (patient_id, traitement_id, seance_ordre) constraint
+    const { data: existingDates } = await supabase
+      .from("patient_traitement_seance_dates")
+      .select("seance_ordre")
+      .eq("patient_id", patientId)
+      .eq("traitement_id", traitementId)
+      .order("seance_ordre", { ascending: false })
+      .limit(1);
+
+    const maxDateOrdre = existingDates && existingDates.length > 0 ? existingDates[0].seance_ordre : 0;
+    const currentMaxOrdre = Math.max(maxTraitementOrdre, maxDateOrdre);
 
     if (!templateSeanceTypeId) {
       setSaving(false);
