@@ -163,15 +163,15 @@ export function PatientTraitementCard({
 
   useEffect(() => {
     if (activeTraitementId) {
-      fetchTraitementDetails();
+      fetchTraitementDetails(true);
     } else {
       setTraitement(null);
     }
   }, [activeTraitementId]);
 
-  const fetchTraitementDetails = async () => {
+  const fetchTraitementDetails = async (showLoader = false) => {
     if (!activeTraitementId) return;
-    setLoading(true);
+    if (showLoader) setLoading(true);
 
     try {
       const { data: traitementData } = await supabase
