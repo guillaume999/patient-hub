@@ -384,6 +384,14 @@ export function PatientReportPrintDialog({
               margin-top: 60px;
               text-align: right;
             }
+            .print-footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 11px;
+              color: #888;
+              border-top: 1px solid #ddd;
+              padding-top: 10px;
+            }
             @media print {
               body { padding: 20px; }
             }
