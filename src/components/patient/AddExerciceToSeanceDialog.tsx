@@ -415,7 +415,13 @@ export function AddExerciceToSeanceDialog({
       resetForm();
     } catch (error) {
       console.error("Error adding exercise:", error);
-      toast.error("Erreur lors de l'ajout");
+      const message = (error as { message?: string })?.message || "";
+      const code = (error as { code?: string })?.code || "";
+      if (code === "42501" || message.includes("row-level security")) {
+        toast.error("Limite d'exercices atteinte pour votre abonnement. Sélectionnez un exercice existant ou supprimez-en un.");
+      } else {
+        toast.error("Erreur lors de l'ajout");
+      }
     } finally {
       setSaving(false);
     }
