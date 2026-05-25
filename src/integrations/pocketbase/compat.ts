@@ -19,10 +19,12 @@ import { pb } from "./client";
 
 type Row = Record<string, any>;
 
-type AnyArray = any[];
-type QueryResult = { data: AnyArray | any; error: any; count: number | null };
-type SingleResult = { data: any; error: any; count: number | null };
-type ListResult = { data: AnyArray; error: any; count: number | null };
+// Trick: intersection of Record + Array lets consumers do BOTH
+//   data?.field   (Record access — used by .single()/.maybeSingle())
+//   data?.map(...) (Array iteration — used by select-without-single)
+// without losing typing, while keeping Set<any> inference (avoids unknown[]).
+type CompatData = (Record<string, any> & any[]) | null;
+type QueryResult = { data: CompatData; error: any; count: number | null };
 
 function pbErrorToSupabase(err: unknown): { message: string; code?: string; details?: string } {
   if (err instanceof ClientResponseError) {
@@ -234,10 +236,8 @@ class QueryBuilder {
     }
   }
 
-  // Two overloaded then signatures depending on whether single() was called.
-  // When singleMode !== "none" data is a single record; otherwise data is an array.
-  then<TResult1 = ListResult | SingleResult, TResult2 = never>(
-    onfulfilled?: ((value: ListResult & SingleResult) => TResult1 | PromiseLike<TResult1>) | null,
+  then<TResult1 = QueryResult, TResult2 = never>(
+    onfulfilled?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
     return this.exec().then(onfulfilled as any, onrejected as any) as Promise<TResult1 | TResult2>;
