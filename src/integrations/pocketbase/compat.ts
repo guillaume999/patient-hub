@@ -248,14 +248,15 @@ type AuthChangeCallback = (event: string, session: any) => void;
 const authListeners = new Set<AuthChangeCallback>();
 
 function currentSession() {
-  if (!pb.authStore.isValid || !pb.authStore.record) return null;
+  const model = (pb.authStore as any).record ?? (pb.authStore as any).model;
+  if (!pb.authStore.isValid || !model) return null;
   return {
     access_token: pb.authStore.token,
     refresh_token: pb.authStore.token,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: 0,
-    user: pb.authStore.record,
+    user: model,
   };
 }
 
@@ -270,8 +271,11 @@ const authApi = {
     return { data: { session: currentSession() }, error: null };
   },
   async getUser() {
-    const rec = pb.authStore.record;
-    return { data: { user: rec ?? null }, error: rec ? null : { message: "No user" } };
+    const rec = (pb.authStore as any).record ?? (pb.authStore as any).model;
+    if (!pb.authStore.isValid || !rec) {
+      return { data: { user: null }, error: null };
+    }
+    return { data: { user: rec }, error: null };
   },
   onAuthStateChange(cb: AuthChangeCallback) {
     authListeners.add(cb);
