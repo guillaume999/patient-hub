@@ -388,8 +388,11 @@ class RpcResult {
     console.warn(`[compat] supabase.rpc("${this.name}") called — not implemented.`);
     return { data: null, error: { message: `RPC "${this.name}" non disponible.` }, count: 0 };
   }
-  then<R = QueryResult>(onf?: any, onr?: any): Promise<R> {
-    return this.exec().then(onf, onr) as any;
+  then<TResult1 = QueryResult, TResult2 = never>(
+    onfulfilled?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2> {
+    return this.exec().then(onfulfilled as any, onrejected as any) as Promise<TResult1 | TResult2>;
   }
 }
 
