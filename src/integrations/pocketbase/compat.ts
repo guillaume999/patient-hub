@@ -21,6 +21,59 @@ type Row = Record<string, any>;
 
 type QueryResult = { data: any; error: any; count: number | null };
 
+// ---------------------------------------------------------------------------
+// Field name translation: app (Supabase convention) <-> PocketBase storage.
+// Keys = name used in app code; values = real column name in PocketBase.
+// ---------------------------------------------------------------------------
+const APP_TO_PB: Record<string, string> = {
+  created_at: "created",
+  updated_at: "updated",
+  has_mutual: "mutuelle",
+  remaining_sessions: "seances_restantes",
+};
+const PB_TO_APP: Record<string, string> = Object.fromEntries(
+  Object.entries(APP_TO_PB).map(([k, v]) => [v, k])
+);
+
+/** App field name → PocketBase column name. */
+function toPb(field: string): string {
+  return APP_TO_PB[field] ?? field;
+}
+/** PocketBase column name → app field name. */
+function fromPb(field: string): string {
+  return PB_TO_APP[field] ?? field;
+}
+/** Translate a write payload from app → PocketBase. */
+function mapPayloadToPb(row: Row): Row {
+  const out: Row = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[toPb(k)] = v;
+  }
+  return out;
+}
+/** Translate a single record (or null) from PocketBase → app. */
+function mapRecordFromPb<T extends Row | null | undefined>(rec: T): T {
+  if (!rec || typeof rec !== "object") return rec;
+  const out: Row = {};
+  for (const [k, v] of Object.entries(rec)) {
+    out[fromPb(k)] = v;
+  }
+  return out as T;
+}
+/** Translate a list of records from PocketBase → app. */
+function mapRecordsFromPb(items: any[]): any[] {
+  return items.map((r) => mapRecordFromPb(r));
+}
+/** Rewrite a PocketBase filter expression string, replacing app field names. */
+function translateFilterExpr(expr: string): string {
+  let out = expr;
+  for (const [app, pb] of Object.entries(APP_TO_PB)) {
+    // word-boundary replace so we don't touch substrings inside values
+    out = out.replace(new RegExp(`\\b${app}\\b`, "g"), pb);
+  }
+  return out;
+}
+
 function pbErrorToSupabase(err: unknown): { message: string; code?: string; details?: string } {
   if (err instanceof ClientResponseError) {
     // PocketBase wraps field-level errors in err.data.data — surface them
