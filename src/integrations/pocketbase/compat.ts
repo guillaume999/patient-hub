@@ -138,7 +138,11 @@ class QueryBuilder {
       .split(",")
       .map((f) => f.trim())
       .filter((f) => f && !f.includes("("));
-    this.selectFields = top.includes("*") || top.length === 0 ? "" : top.join(",");
+    // Translate app field names → PocketBase column names for the `fields` param.
+    this.selectFields =
+      top.includes("*") || top.length === 0
+        ? ""
+        : top.map((f) => toPb(f)).join(",");
     if (this.mode !== "insert" && this.mode !== "update" && this.mode !== "upsert" && this.mode !== "delete") {
       this.mode = "select";
     } else {
@@ -203,7 +207,7 @@ class QueryBuilder {
 
   order(col: string, opts?: { ascending?: boolean }): this {
     const prefix = opts?.ascending === false ? "-" : "+";
-    this.orderBy.push(`${prefix}${col}`);
+    this.orderBy.push(`${prefix}${toPb(col)}`);
     return this;
   }
   limit(n: number): this { this.limitN = n; return this; }
@@ -214,16 +218,17 @@ class QueryBuilder {
   private buildFilter(): string {
     return this.filters
       .map((f) => {
-        if (f.op === "raw") return f.val;
+        if (f.op === "raw") return translateFilterExpr(String(f.val));
+        const col = toPb(f.col);
         if (f.op === "in") {
           const arr = f.val as any[];
-          if (arr.length === 0) return `${f.col} = "__never__"`;
-          return "(" + arr.map((v) => `${f.col} = ${escapeFilterValue(v)}`).join(" || ") + ")";
+          if (arr.length === 0) return `${col} = "__never__"`;
+          return "(" + arr.map((v) => `${col} = ${escapeFilterValue(v)}`).join(" || ") + ")";
         }
         if (f.val === null) {
-          return f.op === "=" ? `${f.col} = null` : `${f.col} != null`;
+          return f.op === "=" ? `${col} = null` : `${col} != null`;
         }
-        return `${f.col} ${f.op} ${escapeFilterValue(f.val)}`;
+        return `${col} ${f.op} ${escapeFilterValue(f.val)}`;
       })
       .join(" && ");
   }
@@ -240,7 +245,7 @@ class QueryBuilder {
         if (this.singleMode !== "none") {
           try {
             const item = await coll.getFirstListItem(filter ?? "", { sort, fields });
-            return { data: item, error: null, count: 1 };
+            return { data: mapRecordFromPb(item), error: null, count: 1 };
           } catch (e) {
             if (e instanceof ClientResponseError && e.status === 404) {
               if (this.singleMode === "maybe") return { data: null, error: null, count: 0 };
@@ -254,11 +259,11 @@ class QueryBuilder {
           const perPage = this.limitN ?? ((this.rangeTo ?? 0) - (this.rangeFrom ?? 0) + 1);
           const page = this.rangeFrom !== null ? Math.floor(this.rangeFrom / perPage) + 1 : 1;
           const res = await coll.getList(page, perPage, { filter, sort, fields });
-          return { data: res.items, error: null, count: res.totalItems };
+          return { data: mapRecordsFromPb(res.items), error: null, count: res.totalItems };
         }
 
         const items = await coll.getFullList({ filter, sort, fields, batch: 500 });
-        return { data: items, error: null, count: items.length };
+        return { data: mapRecordsFromPb(items), error: null, count: items.length };
       }
 
       if (this.mode === "insert" || this.mode === "upsert") {
@@ -280,8 +285,8 @@ class QueryBuilder {
           ) {
             clean.user = currentUserId;
           }
-          const rec = await coll.create(clean);
-          created.push(rec);
+          const rec = await coll.create(mapPayloadToPb(clean));
+          created.push(mapRecordFromPb(rec));
         }
         if (this.singleMode !== "none") return { data: created[0] ?? null, error: null, count: created.length };
         return { data: this.returning || this.selectFields ? created : null, error: null, count: created.length };
@@ -293,10 +298,11 @@ class QueryBuilder {
         const matches = await coll.getFullList({ filter, batch: 500 });
         const clean: Row = {};
         Object.entries(this.payload as Row).forEach(([k, v]) => { if (v !== undefined) clean[k] = v; });
+        const pbPayload = mapPayloadToPb(clean);
         const updated: any[] = [];
         for (const m of matches) {
-          const rec = await coll.update(m.id, clean);
-          updated.push(rec);
+          const rec = await coll.update(m.id, pbPayload);
+          updated.push(mapRecordFromPb(rec));
         }
         if (this.singleMode !== "none") return { data: updated[0] ?? null, error: null, count: updated.length };
         return { data: this.returning || this.selectFields ? updated : null, error: null, count: updated.length };
