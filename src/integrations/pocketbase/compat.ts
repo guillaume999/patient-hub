@@ -349,7 +349,7 @@ function currentSession() {
     token_type: "bearer",
     expires_in: 3600,
     expires_at: 0,
-    user: model,
+    user: mapRecordFromPb(model),
   };
 }
 
@@ -368,7 +368,7 @@ const authApi = {
     if (!pb.authStore.isValid || !rec) {
       return { data: { user: null }, error: null };
     }
-    return { data: { user: rec }, error: null };
+    return { data: { user: mapRecordFromPb(rec) }, error: null };
   },
   onAuthStateChange(cb: AuthChangeCallback) {
     authListeners.add(cb);
@@ -385,7 +385,7 @@ const authApi = {
   async signInWithPassword({ email, password }: { email: string; password: string }) {
     try {
       const auth = await pb.collection("users").authWithPassword(email, password);
-      return { data: { user: auth.record, session: currentSession() }, error: null };
+      return { data: { user: mapRecordFromPb(auth.record as any), session: currentSession() }, error: null };
     } catch (e) {
       return { data: { user: null, session: null }, error: pbErrorToSupabase(e) };
     }
