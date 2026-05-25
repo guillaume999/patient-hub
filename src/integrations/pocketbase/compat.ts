@@ -189,10 +189,22 @@ class QueryBuilder {
       if (this.mode === "insert" || this.mode === "upsert") {
         const rows = Array.isArray(this.payload) ? this.payload : [this.payload];
         const created: any[] = [];
+        const currentUserId =
+          (pb.authStore as any).record?.id ?? (pb.authStore as any).model?.id ?? null;
         for (const row of rows) {
           // Strip undefined fields
           const clean: Row = {};
           Object.entries(row).forEach(([k, v]) => { if (v !== undefined) clean[k] = v; });
+          // Auto-inject the authenticated user id when not provided and
+          // we're not writing to the users collection itself.
+          if (
+            currentUserId &&
+            this.collection !== "users" &&
+            clean.user === undefined &&
+            clean.user_id === undefined
+          ) {
+            clean.user = currentUserId;
+          }
           const rec = await coll.create(clean);
           created.push(rec);
         }
@@ -248,14 +260,15 @@ type AuthChangeCallback = (event: string, session: any) => void;
 const authListeners = new Set<AuthChangeCallback>();
 
 function currentSession() {
-  if (!pb.authStore.isValid || !pb.authStore.record) return null;
+  const model = (pb.authStore as any).record ?? (pb.authStore as any).model;
+  if (!pb.authStore.isValid || !model) return null;
   return {
     access_token: pb.authStore.token,
     refresh_token: pb.authStore.token,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: 0,
-    user: pb.authStore.record,
+    user: model,
   };
 }
 
@@ -270,8 +283,11 @@ const authApi = {
     return { data: { session: currentSession() }, error: null };
   },
   async getUser() {
-    const rec = pb.authStore.record;
-    return { data: { user: rec ?? null }, error: rec ? null : { message: "No user" } };
+    const rec = (pb.authStore as any).record ?? (pb.authStore as any).model;
+    if (!pb.authStore.isValid || !rec) {
+      return { data: { user: null }, error: null };
+    }
+    return { data: { user: rec }, error: null };
   },
   onAuthStateChange(cb: AuthChangeCallback) {
     authListeners.add(cb);
