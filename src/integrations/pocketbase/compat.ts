@@ -19,6 +19,8 @@ import { pb } from "./client";
 
 type Row = Record<string, any>;
 
+type QueryResult = { data: any; error: any; count: number | null };
+
 function pbErrorToSupabase(err: unknown): { message: string; code?: string; details?: string } {
   if (err instanceof ClientResponseError) {
     return {
@@ -39,7 +41,7 @@ function escapeFilterValue(v: any): string {
 
 type Filter = { op: string; col: string; val: any };
 
-class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
+class QueryBuilder {
   private filters: Filter[] = [];
   private orderBy: string[] = [];
   private limitN: number | null = null;
@@ -151,7 +153,7 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
       .join(" && ");
   }
 
-  private async exec(): Promise<{ data: any; error: any; count?: number | null }> {
+  private async exec(): Promise<QueryResult> {
     try {
       const coll = pb.collection(this.collection);
 
@@ -163,11 +165,11 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
         if (this.singleMode !== "none") {
           try {
             const item = await coll.getFirstListItem(filter ?? "", { sort, fields });
-            return { data: item, error: null };
+            return { data: item, error: null, count: 1 };
           } catch (e) {
             if (e instanceof ClientResponseError && e.status === 404) {
-              if (this.singleMode === "maybe") return { data: null, error: null };
-              return { data: null, error: pbErrorToSupabase(e) };
+              if (this.singleMode === "maybe") return { data: null, error: null, count: 0 };
+              return { data: null, error: pbErrorToSupabase(e), count: 0 };
             }
             throw e;
           }
@@ -194,13 +196,13 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
           const rec = await coll.create(clean);
           created.push(rec);
         }
-        if (this.singleMode !== "none") return { data: created[0] ?? null, error: null };
-        return { data: this.returning || this.selectFields ? created : null, error: null };
+        if (this.singleMode !== "none") return { data: created[0] ?? null, error: null, count: created.length };
+        return { data: this.returning || this.selectFields ? created : null, error: null, count: created.length };
       }
 
       if (this.mode === "update") {
         const filter = this.buildFilter();
-        if (!filter) return { data: null, error: { message: "UPDATE without filter is forbidden" } };
+        if (!filter) return { data: null, error: { message: "UPDATE without filter is forbidden" }, count: 0 };
         const matches = await coll.getFullList({ filter, batch: 500 });
         const clean: Row = {};
         Object.entries(this.payload as Row).forEach(([k, v]) => { if (v !== undefined) clean[k] = v; });
@@ -209,31 +211,34 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any }> {
           const rec = await coll.update(m.id, clean);
           updated.push(rec);
         }
-        if (this.singleMode !== "none") return { data: updated[0] ?? null, error: null };
-        return { data: this.returning || this.selectFields ? updated : null, error: null };
+        if (this.singleMode !== "none") return { data: updated[0] ?? null, error: null, count: updated.length };
+        return { data: this.returning || this.selectFields ? updated : null, error: null, count: updated.length };
       }
 
       if (this.mode === "delete") {
         const filter = this.buildFilter();
-        if (!filter) return { data: null, error: { message: "DELETE without filter is forbidden" } };
+        if (!filter) return { data: null, error: { message: "DELETE without filter is forbidden" }, count: 0 };
         const matches = await coll.getFullList({ filter, batch: 500 });
         for (const m of matches) {
           await coll.delete(m.id);
         }
-        return { data: null, error: null };
+        return { data: null, error: null, count: matches.length };
       }
 
-      return { data: null, error: { message: `Unknown mode ${this.mode}` } };
+      return { data: null, error: { message: `Unknown mode ${this.mode}` }, count: 0 };
     } catch (e) {
-      return { data: null, error: pbErrorToSupabase(e) };
+      return { data: null, error: pbErrorToSupabase(e), count: 0 };
     }
   }
 
-  then<TResult1 = any, TResult2 = never>(
-    onfulfilled?: ((value: { data: any; error: any }) => TResult1 | PromiseLike<TResult1>) | null,
+  then<TResult1 = QueryResult, TResult2 = never>(
+    onfulfilled?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ): PromiseLike<TResult1 | TResult2> {
-    return this.exec().then(onfulfilled as any, onrejected as any);
+  ): Promise<TResult1 | TResult2> {
+    return this.exec().then(onfulfilled as any, onrejected as any) as Promise<TResult1 | TResult2>;
+  }
+  catch<R = never>(onrejected?: ((r: any) => R | PromiseLike<R>) | null): Promise<QueryResult | R> {
+    return this.exec().catch(onrejected as any) as any;
   }
 }
 
@@ -338,7 +343,7 @@ const authApi = {
 const storageApi = {
   from(_bucket: string) {
     return {
-      async upload(_path: string, _file: File | Blob) {
+      async upload(_path: string, _file: File | Blob, _opts?: any) {
         return { data: null, error: { message: "supabase.storage.upload is not supported in PocketBase migration. Use pb.collection('videos').create(FormData) directly." } };
       },
       getPublicUrl(_path: string) {
@@ -346,6 +351,15 @@ const storageApi = {
       },
       async remove(_paths: string[]) {
         return { data: null, error: null };
+      },
+      async list(_path?: string, _opts?: any) {
+        return { data: [], error: null };
+      },
+      async download(_path: string) {
+        return { data: null, error: { message: "download not supported" } };
+      },
+      async createSignedUploadUrl(_path: string) {
+        return { data: null, error: { message: "signed upload not supported" } };
       },
       async createSignedUrl(_path: string, _expiresIn: number) {
         return { data: null, error: { message: "createSignedUrl not supported" } };
@@ -365,6 +379,20 @@ const functionsApi = {
 
 // ===== Top-level export =====
 
+// RPC returns a thenable so callers can chain .maybeSingle() / .single()
+class RpcResult {
+  constructor(private name: string) {}
+  single() { return this; }
+  maybeSingle() { return this; }
+  private async exec(): Promise<QueryResult> {
+    console.warn(`[compat] supabase.rpc("${this.name}") called — not implemented.`);
+    return { data: null, error: { message: `RPC "${this.name}" non disponible.` }, count: 0 };
+  }
+  then<R = QueryResult>(onf?: any, onr?: any): Promise<R> {
+    return this.exec().then(onf, onr) as any;
+  }
+}
+
 export const supabase = {
   from(collection: string) {
     return new QueryBuilder(collection);
@@ -372,9 +400,8 @@ export const supabase = {
   auth: authApi,
   storage: storageApi,
   functions: functionsApi,
-  async rpc(name: string, _params?: any) {
-    console.warn(`[compat] supabase.rpc("${name}") called — RPC not implemented. Rewrite call site to use PocketBase directly.`);
-    return { data: null, error: { message: `RPC "${name}" non disponible.` } };
+  rpc(name: string, _params?: any) {
+    return new RpcResult(name);
   },
   channel(_name: string) {
     // Realtime stub — wrap PocketBase subscriptions
