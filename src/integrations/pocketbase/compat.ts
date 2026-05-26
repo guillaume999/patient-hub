@@ -185,6 +185,40 @@ function escapeFilterValue(v: any): string {
   return `"${String(v).replace(/"/g, '\\"')}"`;
 }
 
+/** Split a select string on top-level commas (ignoring commas inside parens). */
+function splitTopLevel(s: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let buf = "";
+  for (const ch of s) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (ch === "," && depth === 0) {
+      out.push(buf);
+      buf = "";
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf.length) out.push(buf);
+  return out;
+}
+
+/**
+ * Convert a Supabase-style joined table name to a PocketBase relation
+ * field name. Heuristic: PocketBase relations are typically singular.
+ *   patients         → patient
+ *   seance_types     → seance_type
+ *   profiles         → profile
+ * Words not ending in `s` are returned unchanged.
+ */
+function singularizeRelation(name: string): string {
+  if (name.endsWith("ies")) return name.slice(0, -3) + "y";
+  if (name.endsWith("ses")) return name.slice(0, -2);
+  if (name.endsWith("s") && !name.endsWith("ss")) return name.slice(0, -1);
+  return name;
+}
+
 type Filter = { op: string; col: string; val: any };
 
 class QueryBuilder {
