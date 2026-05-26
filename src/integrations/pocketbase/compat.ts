@@ -33,6 +33,13 @@ const APP_TO_PB: Record<string, string> = {
   // PocketBase's auth relation is conventionally named `user`,
   // while the app uses Supabase's `user_id` everywhere.
   user_id: "user",
+  // Relation foreign keys: app uses Supabase `<entity>_id`, PB uses `<entity>`.
+  patient_id: "patient",
+  traitement_id: "traitement",
+  traitement_type_id: "traitement_type",
+  seance_id: "seance",
+  seance_type_id: "seance_type",
+  exercice_id: "exercice",
 };
 const PB_TO_APP: Record<string, string> = Object.fromEntries(
   Object.entries(APP_TO_PB).map(([k, v]) => [v, k])
