@@ -311,7 +311,34 @@ class QueryBuilder {
     arr.forEach((v) => this.filters.push({ op: "~", col, val: v }));
     return this;
   }
-  or(expr: string): this { this.filters.push({ op: "raw", col: "", val: `(${expr.replace(/\.eq\./g, " = ").replace(/,/g, " || ")})` }); return this; }
+  or(expr: string): this {
+    // Supabase `or` syntax: "col.op.val,col.op.val[,...]" (commas inside
+    // parens for `in.(1,2,3)` stay grouped). We parse it into PocketBase
+    // syntax with translated field names AND quoted string values.
+    const parts = splitTopLevel(expr);
+    const opMap: Record<string, string> = {
+      eq: "=", neq: "!=", gt: ">", gte: ">=", lt: "<", lte: "<=",
+      like: "~", ilike: "~",
+    };
+    const clauses = parts.map((raw) => {
+      const p = raw.trim();
+      const m = p.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\.([a-z]+)\.(.*)$/);
+      if (!m) return translateFilterExpr(p);
+      const [, col, op, rawVal] = m;
+      const pbCol = toPb(col);
+      if (op === "is" && /^null$/i.test(rawVal)) return `${pbCol} = null`;
+      if (op === "in") {
+        const inner = rawVal.replace(/^\(|\)$/g, "");
+        const vals = inner.split(",").map((v) => escapeFilterValue(v.trim()));
+        if (!vals.length) return `${pbCol} = "__never__"`;
+        return "(" + vals.map((v) => `${pbCol} = ${v}`).join(" || ") + ")";
+      }
+      const pbOp = opMap[op] ?? "=";
+      return `${pbCol} ${pbOp} ${escapeFilterValue(rawVal)}`;
+    });
+    this.filters.push({ op: "rawready", col: "", val: `(${clauses.join(" || ")})` });
+    return this;
+  }
   not(col: string, op: string, val: any): this {
     const inv = op === "is" ? "!=" : `!${op}`;
     this.filters.push({ op: inv, col, val });
@@ -336,6 +363,7 @@ class QueryBuilder {
   private buildFilter(): string {
     return this.filters
       .map((f) => {
+        if (f.op === "rawready") return String(f.val);
         if (f.op === "raw") return translateFilterExpr(String(f.val));
         const col = toPb(f.col);
         if (f.op === "in") {
@@ -443,6 +471,23 @@ class QueryBuilder {
 
       return { data: null, error: { message: `Unknown mode ${this.mode}` }, count: 0 };
     } catch (e) {
+      // A 404 here means the PocketBase collection does not exist (or the
+      // record was not found by id). For read queries, fall back to an empty
+      // result so unrelated parts of the page can still render instead of
+      // crashing on a missing optional collection.
+      if (
+        e instanceof ClientResponseError &&
+        e.status === 404 &&
+        this.mode === "select"
+      ) {
+        console.warn(
+          `[pb-compat] collection "${this.collection}" 404 — returning empty result`
+        );
+        if (this.singleMode !== "none") {
+          return { data: null, error: null, count: 0 };
+        }
+        return { data: [], error: null, count: 0 };
+      }
       return { data: null, error: pbErrorToSupabase(e), count: 0 };
     }
   }
