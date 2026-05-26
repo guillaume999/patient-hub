@@ -245,10 +245,10 @@ export function PatientTraitementCard({
           seanceDates: seanceDatesData || [],
           traitement_start_date: carePlanData?.traitement_start_date || null,
           care_plan_author:
+            (carePlanData as any)?.created_by?.pseudo ||
             (carePlanData as any)?.created_by?.name ||
-            (carePlanData as any)?.created_by?.email ||
+            (carePlanData as any)?.user?.pseudo ||
             (carePlanData as any)?.user?.name ||
-            (carePlanData as any)?.user?.email ||
             null,
         });
       }
