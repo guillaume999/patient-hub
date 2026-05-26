@@ -638,8 +638,14 @@ const authApi = {
       try {
         rec = await pb.collection("users").create(payload);
       } catch (e) {
-        // Retry without optional custom fields if PocketBase complains about unknown columns.
+        // If the error is specifically about the pseudo (not unique / required / invalid),
+        // surface it directly — do NOT retry without pseudo, otherwise the user would be
+        // created without a pseudo and the UI would silently swallow the validation error.
         if (e instanceof ClientResponseError && e.status === 400) {
+          const fieldErrors: any = (e.data as any)?.data ?? {};
+          if (fieldErrors?.pseudo) {
+            throw e;
+          }
           const minimal: Record<string, any> = {
             email,
             password,
