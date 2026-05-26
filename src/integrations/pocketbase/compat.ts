@@ -204,16 +204,29 @@ class QueryBuilder {
   constructor(private collection: string) {}
 
   select(fields: string = "*", _opts?: { count?: string; head?: boolean }): this {
-    // Strip relation joins like "*, profiles(name)" — keep only top-level fields.
-    const top = fields
-      .split(",")
-      .map((f) => f.trim())
-      .filter((f) => f && !f.includes("("));
+    // Split on top-level commas only — commas inside parentheses belong to
+    // relation field lists like "patients(id,name)" and must not be split.
+    const parts = splitTopLevel(fields);
+    const top: string[] = [];
+    const relations: string[] = [];
+    for (const raw of parts) {
+      const f = raw.trim();
+      if (!f) continue;
+      const m = f.match(/^!?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:!inner|!left)?\s*\(/);
+      if (m) {
+        // Derive PB relation field name from the joined table name.
+        // "patients(...)" → "patient", "seance_types(...)" → "seance_type".
+        relations.push(singularizeRelation(m[1]));
+      } else {
+        top.push(f);
+      }
+    }
     // Translate app field names → PocketBase column names for the `fields` param.
     this.selectFields =
       top.includes("*") || top.length === 0
         ? ""
         : top.map((f) => toPb(f)).join(",");
+    this.expandFields = relations.length ? relations.join(",") : "";
     if (this.mode !== "insert" && this.mode !== "update" && this.mode !== "upsert" && this.mode !== "delete") {
       this.mode = "select";
     } else {
@@ -312,10 +325,11 @@ class QueryBuilder {
         const filter = this.buildFilter() || undefined;
         const sort = this.orderBy.length ? this.orderBy.join(",") : undefined;
         const fields = this.selectFields || undefined;
+        const expand = this.expandFields || undefined;
 
         if (this.singleMode !== "none") {
           try {
-            const item = await coll.getFirstListItem(filter ?? "", { sort, fields });
+            const item = await coll.getFirstListItem(filter ?? "", { sort, fields, expand });
             return { data: mapRecordFromPb(item), error: null, count: 1 };
           } catch (e) {
             if (e instanceof ClientResponseError && e.status === 404) {
@@ -329,13 +343,13 @@ class QueryBuilder {
         if (this.limitN !== null || this.rangeFrom !== null) {
           const perPage = this.limitN ?? ((this.rangeTo ?? 0) - (this.rangeFrom ?? 0) + 1);
           const page = this.rangeFrom !== null ? Math.floor(this.rangeFrom / perPage) + 1 : 1;
-          const res = await coll.getList(page, perPage, { filter, sort, fields });
+          const res = await coll.getList(page, perPage, { filter, sort, fields, expand });
           const data = mapRecordsFromPb(res.items);
           console.debug(`[pb-compat] ${this.collection} getList →`, { totalItems: res.totalItems, returned: data.length });
           return { data, error: null, count: res.totalItems };
         }
 
-        const items = await coll.getFullList({ filter, sort, fields, batch: 500 });
+        const items = await coll.getFullList({ filter, sort, fields, expand, batch: 500 });
         const data = mapRecordsFromPb(items);
         console.debug(`[pb-compat] ${this.collection} getFullList →`, { count: items.length, returned: data.length, first: data[0] });
         return { data, error: null, count: items.length };
