@@ -33,6 +33,13 @@ const APP_TO_PB: Record<string, string> = {
   // PocketBase's auth relation is conventionally named `user`,
   // while the app uses Supabase's `user_id` everywhere.
   user_id: "user",
+  // Relation foreign keys: app uses Supabase `<entity>_id`, PB uses `<entity>`.
+  patient_id: "patient",
+  traitement_id: "traitement",
+  traitement_type_id: "traitement_type",
+  seance_id: "seance",
+  seance_type_id: "seance_type",
+  exercice_id: "exercice",
 };
 const PB_TO_APP: Record<string, string> = Object.fromEntries(
   Object.entries(APP_TO_PB).map(([k, v]) => [v, k])
@@ -104,10 +111,23 @@ function mapRecordFromPb<T extends Row | null | undefined>(rec: T): T {
   // capture all enumerable own properties (id, collectionId, custom fields…)
   // then translate column names back to the app convention.
   const plain: Row = { ...(rec as any) };
+  const expand: Row | undefined = plain.expand;
   const out: Row = {};
   for (const [k, v] of Object.entries(plain)) {
+    if (k === "expand") continue;
     const appKey = fromPb(k);
     out[appKey] = PB_SELECT_FIELDS.has(k) ? mapSelectValueFromPb(v) : v;
+  }
+  // Flatten expanded relations: PB `record.expand.patient` (object or array)
+  // becomes `record.patient` so the app sees the joined data directly,
+  // mirroring Supabase's `select('*, patients(*)')` shape. The FK string
+  // remains available under `<relation>_id` (e.g. `patient_id`).
+  if (expand && typeof expand === "object") {
+    for (const [relKey, relVal] of Object.entries(expand)) {
+      out[relKey] = Array.isArray(relVal)
+        ? relVal.map((r) => mapRecordFromPb(r))
+        : mapRecordFromPb(relVal as Row);
+    }
   }
   return out as T;
 }
@@ -165,6 +185,40 @@ function escapeFilterValue(v: any): string {
   return `"${String(v).replace(/"/g, '\\"')}"`;
 }
 
+/** Split a select string on top-level commas (ignoring commas inside parens). */
+function splitTopLevel(s: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let buf = "";
+  for (const ch of s) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (ch === "," && depth === 0) {
+      out.push(buf);
+      buf = "";
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf.length) out.push(buf);
+  return out;
+}
+
+/**
+ * Convert a Supabase-style joined table name to a PocketBase relation
+ * field name. Heuristic: PocketBase relations are typically singular.
+ *   patients         → patient
+ *   seance_types     → seance_type
+ *   profiles         → profile
+ * Words not ending in `s` are returned unchanged.
+ */
+function singularizeRelation(name: string): string {
+  if (name.endsWith("ies")) return name.slice(0, -3) + "y";
+  if (name.endsWith("ses")) return name.slice(0, -2);
+  if (name.endsWith("s") && !name.endsWith("ss")) return name.slice(0, -1);
+  return name;
+}
+
 type Filter = { op: string; col: string; val: any };
 
 class QueryBuilder {
@@ -184,16 +238,29 @@ class QueryBuilder {
   constructor(private collection: string) {}
 
   select(fields: string = "*", _opts?: { count?: string; head?: boolean }): this {
-    // Strip relation joins like "*, profiles(name)" — keep only top-level fields.
-    const top = fields
-      .split(",")
-      .map((f) => f.trim())
-      .filter((f) => f && !f.includes("("));
+    // Split on top-level commas only — commas inside parentheses belong to
+    // relation field lists like "patients(id,name)" and must not be split.
+    const parts = splitTopLevel(fields);
+    const top: string[] = [];
+    const relations: string[] = [];
+    for (const raw of parts) {
+      const f = raw.trim();
+      if (!f) continue;
+      const m = f.match(/^!?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:!inner|!left)?\s*\(/);
+      if (m) {
+        // Derive PB relation field name from the joined table name.
+        // "patients(...)" → "patient", "seance_types(...)" → "seance_type".
+        relations.push(singularizeRelation(m[1]));
+      } else {
+        top.push(f);
+      }
+    }
     // Translate app field names → PocketBase column names for the `fields` param.
     this.selectFields =
       top.includes("*") || top.length === 0
         ? ""
         : top.map((f) => toPb(f)).join(",");
+    this.expandFields = relations.length ? relations.join(",") : "";
     if (this.mode !== "insert" && this.mode !== "update" && this.mode !== "upsert" && this.mode !== "delete") {
       this.mode = "select";
     } else {
@@ -292,10 +359,11 @@ class QueryBuilder {
         const filter = this.buildFilter() || undefined;
         const sort = this.orderBy.length ? this.orderBy.join(",") : undefined;
         const fields = this.selectFields || undefined;
+        const expand = this.expandFields || undefined;
 
         if (this.singleMode !== "none") {
           try {
-            const item = await coll.getFirstListItem(filter ?? "", { sort, fields });
+            const item = await coll.getFirstListItem(filter ?? "", { sort, fields, expand });
             return { data: mapRecordFromPb(item), error: null, count: 1 };
           } catch (e) {
             if (e instanceof ClientResponseError && e.status === 404) {
@@ -309,13 +377,13 @@ class QueryBuilder {
         if (this.limitN !== null || this.rangeFrom !== null) {
           const perPage = this.limitN ?? ((this.rangeTo ?? 0) - (this.rangeFrom ?? 0) + 1);
           const page = this.rangeFrom !== null ? Math.floor(this.rangeFrom / perPage) + 1 : 1;
-          const res = await coll.getList(page, perPage, { filter, sort, fields });
+          const res = await coll.getList(page, perPage, { filter, sort, fields, expand });
           const data = mapRecordsFromPb(res.items);
           console.debug(`[pb-compat] ${this.collection} getList →`, { totalItems: res.totalItems, returned: data.length });
           return { data, error: null, count: res.totalItems };
         }
 
-        const items = await coll.getFullList({ filter, sort, fields, batch: 500 });
+        const items = await coll.getFullList({ filter, sort, fields, expand, batch: 500 });
         const data = mapRecordsFromPb(items);
         console.debug(`[pb-compat] ${this.collection} getFullList →`, { count: items.length, returned: data.length, first: data[0] });
         return { data, error: null, count: items.length };
