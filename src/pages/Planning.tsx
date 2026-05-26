@@ -38,11 +38,11 @@ interface Appointment {
 
 type ViewMode = "week" | "day";
 
-const TIME_SLOTS = Array.from({ length: 52 }, (_, i) => {
-  const hours = Math.floor(i / 4) + 7; // Start at 7:00
+const TIME_SLOTS = Array.from({ length: 96 }, (_, i) => {
+  const hours = Math.floor(i / 4); // 00:00 → 23:45
   const minutes = (i % 4) * 15;
   return { hours, minutes, label: `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}` };
-}).filter(slot => slot.hours < 20); // End at 19:45 (last slot before 20:00)
+});
 
 export default function Planning() {
   const { user, loading: authLoading, signOut } = useAuth();
