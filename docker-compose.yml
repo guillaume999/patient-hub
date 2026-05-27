@@ -2,13 +2,14 @@ version: "3.8"
 
 services:
   physiooffice:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: physiooffice
-    ports:
-      - "8080:8081"
-    restart: unless-stopped
-    environment:
-      - NGINX_ENTRYPOINT_QUIET_LOGS=1
-            - PB_URL=${PB_URL:-https://pocketbase.physiooffice.com}
+      build:
+            context: .
+                  dockerfile: Dockerfile
+                      container_name: physiooffice
+                          ports:
+                                - "8080:8081"
+                                    restart: unless-stopped
+                                        environment:
+                                              - NGINX_ENTRYPOINT_QUIET_LOGS=1
+                                                    - PB_URL=https://pocketbase.physiooffice.com
+                                                    
