@@ -52,9 +52,10 @@ interface SeanceFormDialogProps {
   initialDate?: string;
   showDateField?: boolean;
   initialPathologies?: string[];
+  hiddenFromListByDefault?: boolean;
 }
 
-export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initialDate, showDateField = false, initialPathologies }: SeanceFormDialogProps) {
+export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initialDate, showDateField = false, initialPathologies, hiddenFromListByDefault = false }: SeanceFormDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
@@ -359,7 +360,8 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
             objectif_secondaire: objectifsSecondaires[0] || null,
             author_name: userPseudo,
             is_shared: false,
-            is_copy: false
+            is_copy: false,
+            is_hidden_from_list: hiddenFromListByDefault,
           })
           .select()
           .single();
