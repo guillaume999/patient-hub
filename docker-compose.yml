@@ -5,11 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VITE_PB_URL: ${VITE_PB_URL:-http://localhost:8090}
     container_name: physiooffice
     ports:
       - "8080:8081"
     restart: unless-stopped
     environment:
       - NGINX_ENTRYPOINT_QUIET_LOGS=1
+            - PB_URL=${PB_URL:-https://pocketbase.physiooffice.com}
