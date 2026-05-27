@@ -464,11 +464,14 @@ export default function Admin() {
         .eq("role", "admin")
         .maybeSingle();
 
+      const user = users.find(u => u.user_id === userId);
+      const isAdmin = !!existingRole || user?.subscription_tier === "admin";
+
       setAdminConfirmDialog({
         open: true,
         userId,
         userEmail,
-        action: existingRole ? "remove" : "add",
+        action: isAdmin ? "remove" : "add",
       });
     } catch (error) {
       console.error("Error checking admin status:", error);
@@ -1148,10 +1151,10 @@ export default function Admin() {
                             </td>
                             <td className="py-3 px-2">
                               <Button
-                                variant={adminUserIds.has(u.user_id) ? "default" : "outline"}
+                                variant={isUserAdmin ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => openAdminConfirmDialog(u.user_id, u.email)}
-                                className={adminUserIds.has(u.user_id) ? "bg-primary text-primary-foreground" : ""}
+                                className={isUserAdmin ? "bg-primary text-primary-foreground" : ""}
                               >
                                 <Shield className="w-4 h-4" />
                               </Button>
