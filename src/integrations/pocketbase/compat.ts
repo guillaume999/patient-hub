@@ -288,11 +288,11 @@ class QueryBuilder {
   private singleMode: "none" | "single" | "maybe" = "none";
 
   private originalCollection: string;
+  private collection: string;
   constructor(collection: string) {
     this.originalCollection = collection;
     this.collection = TABLE_ALIAS[collection] ?? collection;
   }
-  private collection: string;
 
   select(fields: string = "*", _opts?: { count?: string; head?: boolean }): this {
     // Split on top-level commas only — commas inside parentheses belong to
