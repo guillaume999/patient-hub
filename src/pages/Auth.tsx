@@ -333,50 +333,52 @@ export default function Auth() {
               </Button>
             </form>
 
-            <div className="mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  const fakeUser = {
-                    id: "dev_user_local",
-                    collectionId: "_pb_users_auth_",
-                    collectionName: "users",
-                    email: "dev@local",
-                    pseudo: "dev",
-                    first_name: "Dev",
-                    last_name: "User",
-                    name: "Dev User",
-                    verified: true,
-                    created: new Date().toISOString(),
-                    updated: new Date().toISOString(),
-                  };
-                  // Fake JWT-shaped token so pb.authStore.isValid returns true
-                  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-                  const payload = btoa(
-                    JSON.stringify({
-                      id: fakeUser.id,
-                      type: "authRecord",
-                      collectionId: fakeUser.collectionId,
-                      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
-                    })
-                  );
-                  const fakeToken = `${header}.${payload}.devsignature`;
-                  pb.authStore.save(fakeToken, fakeUser as any);
-                  toast({
-                    title: "Connexion simulée",
-                    description: "Session de dev créée localement.",
-                  });
-                  navigate("/");
-                }}
-              >
-                Connexion simulée (dev)
-              </Button>
-              <p className="mt-2 text-xs text-muted-foreground text-center">
-                Crée une session locale fictive sans appeler le serveur.
-              </p>
-            </div>
+            {import.meta.env.DEV && (
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    const fakeUser = {
+                      id: "dev_user_local",
+                      collectionId: "_pb_users_auth_",
+                      collectionName: "users",
+                      email: "dev@local",
+                      pseudo: "dev",
+                      first_name: "Dev",
+                      last_name: "User",
+                      name: "Dev User",
+                      verified: true,
+                      created: new Date().toISOString(),
+                      updated: new Date().toISOString(),
+                    };
+                    // Fake JWT-shaped token so pb.authStore.isValid returns true
+                    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+                    const payload = btoa(
+                      JSON.stringify({
+                        id: fakeUser.id,
+                        type: "authRecord",
+                        collectionId: fakeUser.collectionId,
+                        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+                      })
+                    );
+                    const fakeToken = `${header}.${payload}.devsignature`;
+                    pb.authStore.save(fakeToken, fakeUser as any);
+                    toast({
+                      title: "Connexion simulée",
+                      description: "Session de dev créée localement.",
+                    });
+                    navigate("/");
+                  }}
+                >
+                  Connexion simulée (dev)
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground text-center">
+                  Crée une session locale fictive sans appeler le serveur.
+                </p>
+              </div>
+            )}
 
             <div className="mt-6 text-center space-y-2">
               {mode === "forgot-password" ? (
