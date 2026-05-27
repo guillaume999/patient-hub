@@ -778,6 +778,15 @@ export default function Planning() {
           nav, footer, header, .print\\:hidden, [class*="MobileBottomNav"], .mt-4, button {
             display: none !important;
           }
+
+          /* Hide any Radix dialog/popover portals and toasts during print */
+          [role="dialog"],
+          [role="alertdialog"],
+          [data-radix-popper-content-wrapper],
+          [data-sonner-toaster],
+          [data-radix-portal] {
+            display: none !important;
+          }
           
           #root {
             height: 200mm !important;
