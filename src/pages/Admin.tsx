@@ -201,7 +201,8 @@ export default function Admin() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (!adminLoading && !isAdmin && user) {
+    if (authLoading || adminLoading) return;
+    if (user && !isAdmin) {
       toast({
         title: "Accès refusé",
         description: "Vous n'avez pas les droits d'accès à cette page.",
@@ -209,7 +210,7 @@ export default function Admin() {
       });
       navigate("/");
     }
-  }, [isAdmin, adminLoading, user, navigate, toast]);
+  }, [isAdmin, adminLoading, authLoading, user, navigate, toast]);
 
   useEffect(() => {
     if (isAdmin) {
