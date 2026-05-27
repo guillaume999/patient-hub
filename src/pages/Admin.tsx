@@ -464,11 +464,14 @@ export default function Admin() {
         .eq("role", "admin")
         .maybeSingle();
 
+      const user = users.find(u => u.user_id === userId);
+      const isAdmin = !!existingRole || user?.subscription_tier === "admin";
+
       setAdminConfirmDialog({
         open: true,
         userId,
         userEmail,
-        action: existingRole ? "remove" : "add",
+        action: isAdmin ? "remove" : "add",
       });
     } catch (error) {
       console.error("Error checking admin status:", error);
