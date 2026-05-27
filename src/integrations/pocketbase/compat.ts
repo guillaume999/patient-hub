@@ -60,6 +60,15 @@ const PB_EXPAND_TO_SUPABASE_JOIN: Record<string, string> = {
   profile: "profiles",
 };
 
+// ---------------------------------------------------------------------------
+// Table-level aliases: app collection name → real PocketBase collection name.
+// Supabase code refers to `profiles`, but PocketBase stores user-profile
+// data directly on the `users` auth collection.
+// ---------------------------------------------------------------------------
+const TABLE_ALIAS: Record<string, string> = {
+  profiles: "users",
+};
+
 /**
  * Bidirectional value mapping for PocketBase Select fields.
  * The app uses English/snake_case values; PocketBase stores French
@@ -278,7 +287,12 @@ class QueryBuilder {
   private returning: boolean = false;
   private singleMode: "none" | "single" | "maybe" = "none";
 
-  constructor(private collection: string) {}
+  private originalCollection: string;
+  constructor(collection: string) {
+    this.originalCollection = collection;
+    this.collection = TABLE_ALIAS[collection] ?? collection;
+  }
+  private collection: string;
 
   select(fields: string = "*", _opts?: { count?: string; head?: boolean }): this {
     // Split on top-level commas only — commas inside parentheses belong to
