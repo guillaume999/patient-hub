@@ -554,13 +554,21 @@ const authListeners = new Set<AuthChangeCallback>();
 function currentSession() {
   const model = (pb.authStore as any).record ?? (pb.authStore as any).model;
   if (!pb.authStore.isValid || !model) return null;
+  const mappedUser: any = mapRecordFromPb(model);
+  mappedUser.user_metadata = {
+    ...(mappedUser.user_metadata ?? {}),
+    subscription_tier: model?.subscription_tier,
+    pseudo: model?.pseudo,
+    first_name: model?.first_name,
+    last_name: model?.last_name,
+  };
   return {
     access_token: pb.authStore.token,
     refresh_token: pb.authStore.token,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: 0,
-    user: mapRecordFromPb(model),
+    user: mappedUser,
   };
 }
 
@@ -579,7 +587,15 @@ const authApi = {
     if (!pb.authStore.isValid || !rec) {
       return { data: { user: null }, error: null };
     }
-    return { data: { user: mapRecordFromPb(rec) }, error: null };
+    const mappedUser: any = mapRecordFromPb(rec);
+    mappedUser.user_metadata = {
+      ...(mappedUser.user_metadata ?? {}),
+      subscription_tier: rec?.subscription_tier,
+      pseudo: rec?.pseudo,
+      first_name: rec?.first_name,
+      last_name: rec?.last_name,
+    };
+    return { data: { user: mappedUser }, error: null };
   },
   onAuthStateChange(cb: AuthChangeCallback) {
     authListeners.add(cb);
