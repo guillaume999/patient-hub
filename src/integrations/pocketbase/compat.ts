@@ -5,7 +5,7 @@
  * existing code that imports `supabase` keeps working while we migrate
  * the data layer to PocketBase.
  *
- * Known limitations:
+ * Known limitations:h
  *  - No automatic joins (`select("*, relation(*)")` — relation part is ignored;
  *    use PocketBase `expand` directly when needed).
  *  - `supabase.rpc()` returns "not implemented" — replace call sites manually.
@@ -628,7 +628,7 @@ class QueryBuilder {
         if (roleFilter && roleFilter !== "admin") {
           return { data: this.singleMode !== "none" ? null : [], error: null, count: 0 };
         }
-        const filterParts: string[] = [`subscription_tier = "admin"`];
+        const filterParts: string[] = [`role = "admin"`];
         if (userIdFilter) filterParts.push(`id = "${userIdFilter}"`);
         const items = await usersColl.getFullList({ filter: filterParts.join(" && "), batch: 500 });
         const rows = items.map((u: any) => ({ user_id: u.id, role: "admin" }));
@@ -641,7 +641,7 @@ class QueryBuilder {
         const rows = Array.isArray(this.payload) ? this.payload : [this.payload];
         for (const r of rows) {
           const uid = r?.user_id ?? r?.user;
-          if (uid) await usersColl.update(String(uid), { subscription_tier: "admin" });
+          if (uid) await usersColl.update(String(uid), { role: "admin" });
         }
         return { data: null, error: null, count: rows.length };
       }
@@ -649,7 +649,7 @@ class QueryBuilder {
         if (!userIdFilter) {
           return { data: null, error: { message: "DELETE on user_roles requires a user_id filter" }, count: 0 };
         }
-        await usersColl.update(userIdFilter, { subscription_tier: "free" });
+        await usersColl.update(userIdFilter, { role: "praticien" });
         return { data: null, error: null, count: 1 };
       }
       return { data: null, error: { message: `Unsupported user_roles mode ${this.mode}` }, count: 0 };
