@@ -106,35 +106,40 @@ export default function Annonces() {
     setLoading(true);
     try {
       // Fetch settings
-      let _d = null, _e = null; try { _d = await pb.collection("annonce_settings").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("free_duration_days")
-        .limit(1)
-        .maybeSingle();
+      let annoncesData: any = null;
+      let error: any = null;
+      try {
+        const _results = await pb.collection("annonce_settings").getList(1, 1, {});
+        annoncesData = _results.items[0] ?? null;
+      } catch (err: any) {
+        error = err;
+      }
       
       if (settingsData) {
         setSettings(settingsData);
       }
 
       // Fetch all active annonces
-      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("is_active", true)
-        .gt("expires_at", new Date().toISOString())
-        .order("is_featured", { ascending: false })
-        .order("created_at", { ascending: false });
+      let annoncesData: any[] = [];
+      let annoncesError: any = null;
+      try {
+        annoncesData = await pb.collection("annonces").getFullList({filter: `is_active = true`, sort: "-is_featured, -created_at"});
+      } catch (err: any) {
+        annoncesError = err;
+      }
 
       if (annoncesError) throw annoncesError;
       setAnnonces((annoncesData as unknown as Annonce[]) || []);
 
       // Fetch my annonces if logged in
       if (user) {
-        let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+        let annoncesData: any[] = [];
+        let annoncesError: any = null;
+        try {
+          annoncesData = await pb.collection("annonces").getFullList({filter: `user_id = "${user.id}"`, sort: "-created_at"});
+        } catch (err: any) {
+          annoncesError = err;
+        }
         
         setMyAnnonces((myData as unknown as Annonce[]) || []);
       }

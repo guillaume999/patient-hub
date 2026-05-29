@@ -95,26 +95,33 @@ export function AddExerciceToSeanceDialog({
     setLoading(true);
 
     // Fetch user pseudo
-    let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pseudo")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    let profileData: any = null;
+    let error: any = null;
+    try {
+      profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user.id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     setUserPseudo(profileData?.pseudo || null);
 
     // Fetch exercices (user's own exercices)
-    let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, code, title, description, video_url, thumbnail_url")
-      .eq("user_id", user.id)
-      .order("title");
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("exercices").getFullList({filter: `user_id = "${user.id}"`, sort: "title"});
+    } catch (err: any) {
+      error = err;
+    }
     setAvailableExercices(exData || []);
 
     // Fetch pathologies for search
-    let _d = null, _e = null; try { _d = await pb.collection("pathologies").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("name")
-      .eq("user_id", user.id);
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("pathologies").getFullList({filter: `user_id = "${user.id}"`});
+    } catch (err: any) {
+      error = err;
+    }
     setAvailablePathologies([...new Set(((pathoData as any[]) ?? []).map((p: any) => p.name as string))]);
 
     setLoading(false);
@@ -217,23 +224,33 @@ export function AddExerciceToSeanceDialog({
       
       const objectName = `${user.id}/thumbnails/${Date.now()}.jpg`;
       
-      let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upload(objectName, blob, {
-          cacheControl: "3600",
-          contentType: "image/jpeg",
-          upsert: false,
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        // TODO: PocketBase file upload - use FormData with pb.collection(...).update(id, formData)
+
+        uploadError = new Error("File upload not yet implemented for PocketBase");
+      } catch (err: any) {
+        uploadError = err;
+      }
         });
 
       if (uploadError) {
-        console.error("Thumbnail upload error:", uploadError);
+        console.uploadError("Thumbnail upload uploadError:", uploadError);
         return null;
       }
 
-      let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
+      let _upload: any = null;
+let uploadError: any = null;
+try {
+  // TODO: PocketBase file upload
+
+  uploadError = new Error("File upload not yet implemented for PocketBase");
+} catch (err: any) {
+  uploadError = err;
+}
       return data.publicUrl;
-    } catch (error) {
+    } catch (uploadError) {
       console.error("Error uploading thumbnail:", error);
       return null;
     }
@@ -255,22 +272,30 @@ export function AddExerciceToSeanceDialog({
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        // TODO: PocketBase file upload - use FormData with pb.collection(...).update(id, formData)
+
+        uploadError = new Error("File upload not yet implemented for PocketBase");
+      } catch (err: any) {
+        uploadError = err;
+      }
         });
 
       if (uploadError) throw uploadError;
 
       const {
         data: { publicUrl },
-      pb.collection("UNKNOWN").getFullList({});
+      // TODO: PocketBase file upload
       // Also add to video library for sync
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: name.trim() || file.name.replace(/\.[^/.]+$/, ""),
           video_url: publicUrl,
@@ -303,11 +328,13 @@ export function AddExerciceToSeanceDialog({
     if (!user) return;
     setLibraryLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("id, title, video_url, thumbnail_url")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({filter: `user_id = "${user.id}"`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setLibraryVideos(data || []);
@@ -357,9 +384,13 @@ export function AddExerciceToSeanceDialog({
           }
         }
 
-        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let exerciceError: any = null;
+        try {
+          data = await pb.collection("exercices").getFullList({});
+        } catch (err: any) {
+          exerciceError = err;
+        }
             user_id: user.id,
             title: name.trim(),
             description: description.trim() || null,
@@ -369,11 +400,9 @@ export function AddExerciceToSeanceDialog({
             thumbnail_url: thumbnailUrl || null,
             author_name: userPseudo,
           })
-          .select()
-          .single();
 
         if (exerciceError) {
-          console.error("Error creating exercice:", exerciceError);
+          console.exerciceError("Error creating exercice:", exerciceError);
           throw exerciceError;
         }
         finalExerciceId = newExercice.id;

@@ -66,20 +66,26 @@ export function AnnoncesManagement() {
     setLoading(true);
     try {
       // Fetch all annonces
-      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let annoncesError: any = null;
+      try {
+        annoncesData = await pb.collection("annonces").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        annoncesError = err;
+      }
 
       if (annoncesError) throw annoncesError;
       setAnnonces((annoncesData as unknown as Annonce[]) || []);
 
       // Fetch settings
-      let _d = null, _e = null; try { _d = await pb.collection("annonce_settings").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .limit(1)
-        .maybeSingle();
+      let annoncesData: any = null;
+      let annoncesError: any = null;
+      try {
+        const _results = await pb.collection("annonce_settings").getList(1, 1, {});
+        annoncesData = _results.items[0] ?? null;
+      } catch (err: any) {
+        annoncesError = err;
+      }
 
       if (settingsError) throw settingsError;
       if (settingsData) {
@@ -107,15 +113,18 @@ export function AnnoncesManagement() {
 
     setSavingSettings(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("annonce_settings").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        fetchData = await pb.collection("annonce_settings").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           free_duration_days: formFreeDays,
           featured_price_cents: formFeaturedPrice,
           extension_price_cents: formExtensionPrice,
           extension_duration_days: formExtensionDays,
         })
-        .eq("id", settings.id);
 
       if (error) throw error;
 
@@ -139,10 +148,13 @@ export function AnnoncesManagement() {
 
   const handleToggleFeatured = async (annonce: Annonce) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ is_featured: !annonce.is_featured })
-        .eq("id", annonce.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        fetchData = await pb.collection("annonces").getFullList({filter: `id = "${annonce.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -163,10 +175,13 @@ export function AnnoncesManagement() {
 
   const handleToggleActive = async (annonce: Annonce) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ is_active: !annonce.is_active })
-        .eq("id", annonce.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        fetchData = await pb.collection("annonces").getFullList({filter: `id = "${annonce.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

@@ -63,10 +63,13 @@ export function ImportSeanceDialog({
 
   const fetchSeances = async () => {
     setLoading(true);
-    let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, pathologie, pathologies, objectif_principal, objectifs_principaux, author_name, is_shared, is_validated, user_id")
-      .order("created_at", { ascending: false });
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("seance_types").getFullList({sort: "-created_at"});
+    } catch (err: any) {
+      error = err;
+    }
 
     if (!error && data) {
       setSeances(data);
@@ -79,9 +82,13 @@ export function ImportSeanceDialog({
     
     setLoadingExercices(prev => new Set(prev).add(seanceId));
     
-    let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select(`
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("seance_exercices").getFullList({});
+    } catch (err: any) {
+      error = err;
+    }
         id,
         ordre,
         series,
@@ -89,8 +96,6 @@ export function ImportSeanceDialog({
         duration_seconds,
         exercice:exercices(id, title, thumbnail_url)
       `)
-      .eq("seance_type_id", seanceId)
-      .order("ordre", { ascending: true });
 
     if (!error && data) {
       setExercicesMap(prev => ({ ...prev, [seanceId]: data }));

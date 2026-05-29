@@ -155,68 +155,88 @@ export default function SeanceType() {
     setLoading(true);
     try {
       // Fetch user profile
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("can_share")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+      let profileData: any = null;
+      let error: any = null;
+      try {
+        profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user!.id}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { error = err; }
+      }
       
       setUserCanShare(profileData?.can_share !== false);
 
       // Fetch featured seances
-      let _d = null, _e = null; try { _d = await pb.collection("featured_seances").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("seance_type_id");
+      let profileData: any[] = [];
+      let seancesError: any = null;
+      try {
+        profileData = await pb.collection("featured_seances").getFullList({});
+      } catch (err: any) {
+        seancesError = err;
+      }
       setFeaturedSeanceIds(featuredData?.map((f) => f.seance_type_id) || []);
 
       // Fetch seance types
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let profileData: any[] = [];
+      let seancesError: any = null;
+      try {
+        profileData = await pb.collection("seance_types").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        seancesError = err;
+      }
 
       if (seancesError) throw seancesError;
 
       // Fetch exercices for each seance with exercice details
       const seancesWithDetails = await Promise.all(
         (seancesData || []).map(async (seance) => {
-          let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("*")
-            .eq("seance_type_id", seance.id)
-            .order("ordre");
+          let data: any[] = [];
+          let error: any = null;
+          try {
+            exercicesData = await pb.collection("seance_exercices").getFullList({filter: `seance_type_id = "${seance.id}"`, sort: "ordre"});
+          } catch (err: any) {
+            error = err;
+          }
 
           // Fetch exercice details for each seance_exercice
           const exercicesWithDetails = await Promise.all(
             (exercicesData || []).map(async (ex) => {
               if (ex.exercice_id) {
-                let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                        const data = _d; const error = _e;
-                  .select("id, title, thumbnail_url, video_url")
-                  .eq("id", ex.exercice_id)
-                  .maybeSingle();
+                let exercicesData: any = null;
+                let error: any = null;
+                try {
+                  exercicesData = await pb.collection("exercices").getFirstListItem(`id = "${ex.exercice_id}"`);
+                } catch (err: any) {
+                  if (err?.status !== 404) { error = err; }
+                }
                 return { ...ex, exercice: exerciceDetail };
               }
               return { ...ex, exercice: null };
             })
           );
 
-          let _d = null, _e = null; try { _d = await pb.collection("seance_likes").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("*", { count: "exact", head: true })
-            .eq("seance_type_id", seance.id);
+          let exercicesData: any[] = [];
+          let error: any = null;
+          try {
+            exercicesData = await pb.collection("seance_likes").getFullList({filter: `seance_type_id = "${seance.id}"`});
+          } catch (err: any) {
+            error = err;
+          }
 
-          let _d = null, _e = null; try { _d = await pb.collection("seance_comments").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("*", { count: "exact", head: true })
-            .eq("seance_type_id", seance.id);
+          let exercicesData: any[] = [];
+          let error: any = null;
+          try {
+            exercicesData = await pb.collection("seance_comments").getFullList({filter: `seance_type_id = "${seance.id}"`});
+          } catch (err: any) {
+            error = err;
+          }
 
-          let _d = null, _e = null; try { _d = await pb.collection("seance_likes").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("id")
-            .eq("seance_type_id", seance.id)
-            .eq("user_id", user?.id)
-            .maybeSingle();
+          let exercicesData: any = null;
+          let error: any = null;
+          try {
+            exercicesData = await pb.collection("seance_likes").getFirstListItem(`seance_type_id = "${seance.id}" && user_id = "${user?.id}"`);
+          } catch (err: any) {
+            if (err?.status !== 404) { error = err; }
+          }
 
           return {
             ...seance,
@@ -283,7 +303,6 @@ export default function SeanceType() {
     try {
       await pb.collection("seance_types").getFullList({});
         .update({ is_shared: !currentlyShared, is_validated: false })
-        .eq("id", seanceId);
       
       toast.success(currentlyShared ? "Séance non partagée" : "Séance partagée (en attente de validation)");
       fetchData();
@@ -300,8 +319,6 @@ export default function SeanceType() {
       if (currentlyLiked) {
         await pb.collection("seance_likes").getFullList({});
           .delete()
-          .eq("seance_type_id", seanceId)
-          .eq("user_id", user.id);
       } else {
         await pb.collection("seance_likes").getFullList({});
           .insert({ seance_type_id: seanceId, user_id: user.id });
@@ -330,16 +347,22 @@ export default function SeanceType() {
 
     try {
       // Fetch user pseudo
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("pseudo")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      let profileData: any = null;
+      let error: any = null;
+      try {
+        profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user.id}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { error = err; }
+      }
 
       // Create the seance copy
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let profileData: any[] = [];
+      let error: any = null;
+      try {
+        profileData = await pb.collection("seance_types").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           pathologie: seance.pathologie,
           pathologies: seance.pathologies || [],
@@ -352,8 +375,6 @@ export default function SeanceType() {
           is_copy: seance.user_id !== user.id,
           original_id: seance.user_id !== user.id ? seance.id : null,
         })
-        .select()
-        .single();
 
       if (seanceError) throw seanceError;
 

@@ -107,12 +107,7 @@ export function ExerciceItemCard({
     (async () => {
       const [{ data: exData }, { data: pathoData }] = await Promise.all([
         pb.collection("exercices").getFullList({});
-          .select("id, code, title, description, video_url, thumbnail_url, pathologie_tags")
-          .eq("user_id", user.id)
-          .order("title"),
         pb.collection("pathologies").getFullList({});
-          .select("name")
-          .eq("user_id", user.id),
       ]);
       if (cancelled) return;
       setAvailableExercices((exData as ExerciceOption[]) || []);
@@ -218,23 +213,33 @@ export function ExerciceItemCard({
       
       const objectName = `${user.id}/thumbnails/${Date.now()}.jpg`;
       
-      let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upload(objectName, blob, {
-          cacheControl: "3600",
-          contentType: "image/jpeg",
-          upsert: false,
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        // TODO: PocketBase file upload - use FormData with pb.collection(...).update(id, formData)
+
+        uploadError = new Error("File upload not yet implemented for PocketBase");
+      } catch (err: any) {
+        uploadError = err;
+      }
         });
 
       if (uploadError) {
-        console.error("Thumbnail upload error:", uploadError);
+        console.uploadError("Thumbnail upload uploadError:", uploadError);
         return null;
       }
 
-      let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
+      let _upload: any = null;
+let uploadError: any = null;
+try {
+  // TODO: PocketBase file upload
+
+  uploadError = new Error("File upload not yet implemented for PocketBase");
+} catch (err: any) {
+  uploadError = err;
+}
       return data.publicUrl;
-    } catch (error) {
+    } catch (uploadError) {
       console.error("Error uploading thumbnail:", error);
       return null;
     }
@@ -256,22 +261,30 @@ export function ExerciceItemCard({
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        // TODO: PocketBase file upload - use FormData with pb.collection(...).update(id, formData)
+
+        uploadError = new Error("File upload not yet implemented for PocketBase");
+      } catch (err: any) {
+        uploadError = err;
+      }
         });
 
       if (uploadError) throw uploadError;
 
       const {
         data: { publicUrl },
-      pb.collection("UNKNOWN").getFullList({});
+      // TODO: PocketBase file upload
       // Also add to video library for sync
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: editValues.name || file.name,
           video_url: publicUrl,
@@ -302,11 +315,13 @@ export function ExerciceItemCard({
     if (!user) return;
     setLibraryLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("id, title, video_url, thumbnail_url")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({filter: `user_id = "${user.id}"`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setLibraryVideos(data || []);
@@ -347,9 +362,13 @@ export function ExerciceItemCard({
       const contentModified = nameChanged || descriptionChanged || videoChanged;
 
       // Update seance_exercices
-      let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        updateData = await pb.collection("seance_exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           series: editValues.series,
           repetitions: editValues.repetitions,
           duration_seconds: editValues.duration_seconds,
@@ -360,7 +379,6 @@ export function ExerciceItemCard({
           name: editValues.name,
           description: editValues.description,
         })
-        .eq("id", exercice.id);
 
       if (error) throw error;
 
@@ -382,13 +400,16 @@ export function ExerciceItemCard({
           updateData.status = "draft";
         }
         
-        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update(updateData)
-          .eq("id", exercice.exercice_id);
+        let data: any[] = [];
+        let exerciceError: any = null;
+        try {
+          data = await pb.collection("exercices").getFullList({filter: `id = "${exercice.exercice_id}"`});
+        } catch (err: any) {
+          exerciceError = err;
+        }
 
         if (exerciceError) {
-          console.error("Error updating exercise:", exerciceError);
+          console.exerciceError("Error updating exercise:", exerciceError);
         } else if (contentModified) {
           // Update local visibility state
           setIsVisible(false);
@@ -442,10 +463,13 @@ export function ExerciceItemCard({
       // Toggle between "draft" (hidden) and "shared" (visible in list)
       const newStatus = newVisibility ? "shared" : "draft";
       
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ status: newStatus })
-        .eq("id", exercice.exercice_id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({filter: `id = "${exercice.exercice_id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       
@@ -462,10 +486,13 @@ export function ExerciceItemCard({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", exercice.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("seance_exercices").getFullList({filter: `id = "${exercice.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -483,10 +510,13 @@ export function ExerciceItemCard({
   const handleSaveExerciceComment = async (newComment: string) => {
     setSaving(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ comment: newComment || null })
-        .eq("id", exercice.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("seance_exercices").getFullList({filter: `id = "${exercice.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

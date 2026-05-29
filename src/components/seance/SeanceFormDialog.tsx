@@ -106,25 +106,33 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
     if (!user) return;
 
     // Fetch user pseudo
-    let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pseudo")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    let profileData: any = null;
+    let error: any = null;
+    try {
+      profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user.id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     setUserPseudo(profileData?.pseudo || null);
 
     // Fetch pathologies
-    let _d = null, _e = null; try { _d = await pb.collection("pathologies").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("name")
-      .eq("user_id", user.id);
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("pathologies").getFullList({filter: `user_id = "${user.id}"`});
+    } catch (err: any) {
+      error = err;
+    }
     setAvailablePathologies([...new Set(((pathoData as any[]) ?? []).map((p: any) => p.name as string))]);
 
     // Fetch objectifs
-    let _d = null, _e = null; try { _d = await pb.collection("objectifs").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("name, type")
-      .eq("user_id", user.id);
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("objectifs").getFullList({filter: `user_id = "${user.id}"`});
+    } catch (err: any) {
+      error = err;
+    }
     
     const objArr = (objData as any[]) ?? [];
     const principaux = objArr.filter((o: any) => o.type === "principal").map((o: any) => o.name as string);
@@ -133,11 +141,13 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
     setAvailableObjectifsSecondaires([...new Set(secondaires)]);
 
     // Fetch exercices (only user's own exercices)
-    let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, code, title, description, video_url, thumbnail_url")
-      .eq("user_id", user.id)
-      .order("title");
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("exercices").getFullList({filter: `user_id = "${user.id}"`, sort: "title"});
+    } catch (err: any) {
+      error = err;
+    }
     setAvailableExercices(exData || []);
   };
 
@@ -197,9 +207,13 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upload(fileName, file, {
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({});
+      } catch (err: any) {
+        uploadError = err;
+      }
           cacheControl: '3600',
           upsert: false
         });
@@ -285,9 +299,13 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
 
       if (seance?.id) {
         // Update existing seance
-        let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update({
+        let data: any[] = [];
+        let updateError: any = null;
+        try {
+          data = await pb.collection("seance_types").getFullList({});
+        } catch (err: any) {
+          updateError = err;
+        }
             pathologies,
             objectifs_principaux: objectifsPrincipaux,
             objectifs_secondaires: objectifsSecondaires,
@@ -296,7 +314,6 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
             objectif_principal: objectifsPrincipaux[0] || "",
             objectif_secondaire: objectifsSecondaires[0] || null
           })
-          .eq("id", seance.id);
 
         if (updateError) throw updateError;
 
@@ -308,9 +325,13 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
           
           // If it's a custom exercice (no exercice_id) and has a name, create it in the exercices table
           if (!exerciceId && ex.name && ex.name.trim()) {
-            let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                    const data = _d; const error = _e;
-              .insert({
+            let data: any[] = [];
+            let exerciceError: any = null;
+            try {
+              data = await pb.collection("exercices").getFullList({});
+            } catch (err: any) {
+              exerciceError = err;
+            }
                 user_id: user.id,
                 title: ex.name.trim(),
                 description: ex.description?.trim() || null,
@@ -319,11 +340,9 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
                 video_url: ex.video_url || null,
                 author_name: userPseudo
               })
-              .select()
-              .single();
             
             if (exerciceError) {
-              console.error("Error creating exercice:", exerciceError);
+              console.exerciceError("Error creating exercice:", exerciceError);
             } else if (newExercice) {
               exerciceId = newExercice.id;
             }
@@ -345,9 +364,13 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
       } else {
         // Create new seance
         var newSeance: { id: string } | null = null;
-        let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          data = await pb.collection("seance_types").getFullList({});
+        } catch (err: any) {
+          error = err;
+        }
             user_id: user.id,
             pathologies,
             objectifs_principaux: objectifsPrincipaux,
@@ -361,8 +384,6 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
             is_copy: false,
             is_hidden_from_list: hiddenFromListByDefault,
           })
-          .select()
-          .single();
 
         if (insertError) throw insertError;
         newSeance = createdSeance as { id: string } | null;
@@ -373,9 +394,13 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
           
           // If it's a custom exercice (no exercice_id) and has a name, create it in the exercices table
           if (!exerciceId && ex.name && ex.name.trim()) {
-            let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                    const data = _d; const error = _e;
-              .insert({
+            let data: any[] = [];
+            let exerciceError: any = null;
+            try {
+              data = await pb.collection("exercices").getFullList({});
+            } catch (err: any) {
+              exerciceError = err;
+            }
                 user_id: user.id,
                 title: ex.name.trim(),
                 description: ex.description?.trim() || null,
@@ -384,11 +409,9 @@ export function SeanceFormDialog({ open, onOpenChange, seance, onSuccess, initia
                 video_url: ex.video_url || null,
                 author_name: userPseudo
               })
-              .select()
-              .single();
             
             if (exerciceError) {
-              console.error("Error creating exercice:", exerciceError);
+              console.exerciceError("Error creating exercice:", exerciceError);
             } else if (newExercice) {
               exerciceId = newExercice.id;
             }

@@ -57,11 +57,13 @@ export default function PatientBilanIntermediaire() {
   const fetchData = async () => {
     try {
       // Fetch patient name
-      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("name")
-        .eq("id", patientId)
-        .single();
+      let bilanData: any = null;
+      let error: any = null;
+      try {
+        bilanData = await pb.collection("patients").getFirstListItem(`id = "${patientId}"`);
+      } catch (err: any) {
+        error = err;
+      }
 
       if (patient) {
         setPatientName(patient.name);
@@ -69,15 +71,17 @@ export default function PatientBilanIntermediaire() {
 
       // Fetch existing bilan if we have an id
       if (bilanId) {
-        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*")
-          .eq("id", bilanId)
-          .single();
+        let bilanData: any = null;
+        let error: any = null;
+        try {
+          bilanData = await pb.collection("patient_bilans").getFirstListItem(`id = "${bilanId}"`);
+        } catch (err: any) {
+          error = err;
+        }
 
         if (bilanData) {
           setExistingBilanId(bilanData.id);
-          // Try to parse existing data if it's JSON
+          // Try to parse existing bilanData if it's JSON
           if (bilanData.content) {
             try {
               const parsed = JSON.parse(bilanData.content);
@@ -118,18 +122,25 @@ export default function PatientBilanIntermediaire() {
     try {
       if (existingBilanId) {
         // Update existing bilan
-        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update({ content: bilanJson })
-          .eq("id", existingBilanId);
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          data = await pb.collection("patient_bilans").getFullList({filter: `id = "${existingBilanId}"`});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (error) throw error;
       } else {
         // Create new bilan with today's date
         const todayDate = format(new Date(), "yyyy-MM-dd");
-        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          BilanData = await pb.collection("patient_bilans").getFullList({});
+        } catch (err: any) {
+          error = err;
+        }
             patient_id: patientId,
             traitement_id: traitementId,
             user_id: user.id,
@@ -137,11 +148,9 @@ export default function PatientBilanIntermediaire() {
             content: bilanJson,
             bilan_date: todayDate,
           })
-          .select()
-          .single();
 
         if (error) throw error;
-        setExistingBilanId(data.id);
+        setExistingBilanId(BilanData.id);
       }
 
       toast.success("Bilan enregistré");

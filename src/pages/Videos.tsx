@@ -66,11 +66,13 @@ export default function Videos() {
     if (!user) return;
     setLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({filter: `user_id = "${user.id}"`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setVideos(data || []);
@@ -192,23 +194,33 @@ export default function Videos() {
       
       const objectName = `${user.id}/thumbnails/${Date.now()}.jpg`;
       
-      let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upload(objectName, blob, {
-          cacheControl: "3600",
-          contentType: "image/jpeg",
-          upsert: false,
+      let data: any[] = [];
+      let uploadError: any = null;
+      try {
+        // TODO: PocketBase file upload - use FormData with pb.collection(...).update(id, formData)
+
+        uploadError = new Error("File upload not yet implemented for PocketBase");
+      } catch (err: any) {
+        uploadError = err;
+      }
         });
 
       if (uploadError) {
-        console.error("Thumbnail upload error:", uploadError);
+        console.uploadError("Thumbnail upload uploadError:", uploadError);
         return null;
       }
 
-      let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
+      let _upload: any = null;
+let uploadError: any = null;
+try {
+  // TODO: PocketBase file upload
+
+  uploadError = new Error("File upload not yet implemented for PocketBase");
+} catch (err: any) {
+  uploadError = err;
+}
       return data.publicUrl;
-    } catch (error) {
+    } catch (uploadError) {
       console.error("Error uploading thumbnail:", error);
       return null;
     }
@@ -232,20 +244,31 @@ export default function Videos() {
     const objectName = `${user.id}/${Date.now()}.${fileExt}`;
 
     // Use standard upload instead of TUS for simplicity
-    let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .upload(objectName, videoFile, {
-        cacheControl: "3600",
-        upsert: false,
+    let data: any[] = [];
+    let uploadError: any = null;
+    try {
+      // TODO: PocketBase file upload - use FormData with pb.collection(...).update(id, formData)
+
+      uploadError = new Error("File upload not yet implemented for PocketBase");
+    } catch (err: any) {
+      uploadError = err;
+    }
       });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
+      console.uploadError("Upload uploadError:", uploadError);
       throw uploadError;
     }
 
-    let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
+    let _upload: any = null;
+let uploadError: any = null;
+try {
+  // TODO: PocketBase file upload
+
+  uploadError = new Error("File upload not yet implemented for PocketBase");
+} catch (err: any) {
+  uploadError = err;
+}
     return data.publicUrl;
   };
 
@@ -279,9 +302,13 @@ export default function Videos() {
       const videoUrl = await uploadVideoToStorage(formVideoFile);
       setUploadProgress(80);
 
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: formTitle.trim(),
           video_url: videoUrl,
@@ -344,14 +371,17 @@ export default function Videos() {
         setUploadProgress(80);
       }
 
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: formTitle.trim(),
           video_url: videoUrl,
           thumbnail_url: thumbnailUrl,
         })
-        .eq("id", selectedVideo.id);
 
       if (error) throw error;
 
@@ -378,20 +408,22 @@ export default function Videos() {
       // First, remove the video reference from all exercices using it
       await pb.collection("exercices").getFullList({});
         .update({ video_id: null, video_url: null, thumbnail_url: null })
-        .eq("video_id", video.id);
 
       // Extract object path from URL and delete from storage
       const urlParts = video.video_url.split("/exercice-videos/");
       if (urlParts.length > 1) {
         const objectPath = urlParts[1];
-        await pb.collection("UNKNOWN").getFullList({});
+        await // TODO: PocketBase file upload
       }
 
       // Delete the video record
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", video.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("videos").getFullList({filter: `id = "${video.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

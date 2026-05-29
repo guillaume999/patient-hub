@@ -223,78 +223,105 @@ export default function Admin() {
     try {
       // Fetch users - explicitly select only non-sensitive fields
       // SECURITY: Never select stripe_customer_id or stripe_subscription_id
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("user_id, email, first_name, last_name, pseudo, trial_end_date, is_premium, is_banned, can_share, created_at, subscription_tier, subscription_end_date, has_stripe_account")
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let usersError: any = null;
+      try {
+        usersData = await pb.collection("profiles").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        usersError = err;
+      }
 
       if (usersError) throw usersError;
       setUsers(usersData || []);
 
       // Fetch admin roles
-      let _d = null, _e = null; try { _d = await pb.collection("user_roles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("user_id")
-        .eq("role", "admin");
+      let usersData: any[] = [];
+      let usersError: any = null;
+      try {
+        usersData = await pb.collection("user_roles").getFullList({filter: "role = "admin""});
+      } catch (err: any) {
+        usersError = err;
+      }
       
       setAdminUserIds(new Set(adminRolesData?.map(r => r.user_id) || []));
 
       // Fetch seances
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let seancesError: any = null;
+      try {
+        seancesData = await pb.collection("seance_types").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        seancesError = err;
+      }
 
       if (seancesError) throw seancesError;
       setSeances(seancesData || []);
 
       // Fetch traitements
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let seancesData: any[] = [];
+      let seancesError: any = null;
+      try {
+        seancesData = await pb.collection("traitement_types").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        seancesError = err;
+      }
 
       if (traitementsError) throw traitementsError;
       setTraitements(traitementsData || []);
 
       // Fetch exercices
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let exercicesError: any = null;
+      try {
+        exercicesData = await pb.collection("exercices").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        exercicesError = err;
+      }
 
       if (exercicesError) throw exercicesError;
       setExercices(exercicesData || []);
 
       // Fetch featured exercices
-      let _d = null, _e = null; try { _d = await pb.collection("featured_exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("exercice_id");
+      let exercicesData: any[] = [];
+      let exercicesError: any = null;
+      try {
+        exercicesData = await pb.collection("featured_exercices").getFullList({});
+      } catch (err: any) {
+        exercicesError = err;
+      }
       
       setFeaturedExerciceIds(new Set(featuredData?.map(f => f.exercice_id) || []));
 
       // Fetch consulted exercices for current admin
-      let _d = null, _e = null; try { _d = await pb.collection("exercice_consultations").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("exercice_id")
-        .eq("is_consulted", true);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        consultedData = await pb.collection("exercice_consultations").getFullList({filter: `is_consulted = true`});
+      } catch (err: any) {
+        error = err;
+      }
       
       setConsultedExerciceIds(new Set(consultedData?.map(c => c.exercice_id) || []));
 
       // Fetch platform certificat models
-      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("is_platform", true)
-        .order("created_at", { ascending: false });
+      let consultedData: any[] = [];
+      let error: any = null;
+      try {
+        consultedData = await pb.collection("certificat_models").getFullList({filter: `is_platform = true`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
       
       setCertificatModels(modelsData || []);
 
       // Fetch subscription limits
-      let _d = null, _e = null; try { _d = await pb.collection("subscription_limits").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("tier");
+      let consultedData: any[] = [];
+      let error: any = null;
+      try {
+        consultedData = await pb.collection("subscription_limits").getFullList({sort: "tier"});
+      } catch (err: any) {
+        error = err;
+      }
       
       setSubscriptionLimits(limitsData || []);
 
@@ -312,9 +339,13 @@ export default function Admin() {
       const pendingExercicesCount = exercicesData?.filter(e => e.status === 'pending').length || 0;
 
       // Fetch patients count
-      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*", { count: "exact", head: true });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        usersData = await pb.collection("patients").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
 
       setStats({
         totalUsers: usersData?.length || 0,
@@ -343,13 +374,16 @@ export default function Admin() {
 
   const updateSubscriptionTier = async (userId: string, newTier: "free" | "basic" | "premium") => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ 
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("profiles").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           subscription_tier: newTier,
           is_premium: newTier !== "free",
         })
-        .eq("user_id", userId);
 
       if (error) throw error;
 
@@ -374,12 +408,15 @@ export default function Admin() {
 
   const updateSubscriptionEndDate = async (userId: string, newDate: string | null) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ 
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("profiles").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           subscription_end_date: newDate ? new Date(newDate).toISOString() : null,
         })
-        .eq("user_id", userId);
 
       if (error) throw error;
 
@@ -403,10 +440,13 @@ export default function Admin() {
 
   const toggleBan = async (userId: string, currentStatus: boolean) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ is_banned: !currentStatus })
-        .eq("user_id", userId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("profiles").getFullList({filter: `user_id = "${userId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -430,10 +470,13 @@ export default function Admin() {
 
   const toggleCanShare = async (userId: string, currentStatus: boolean) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ can_share: !currentStatus })
-        .eq("user_id", userId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("profiles").getFullList({filter: `user_id = "${userId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -457,12 +500,13 @@ export default function Admin() {
 
   const openAdminConfirmDialog = async (userId: string, userEmail: string | null) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("user_roles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
+      let data: any = null;
+      let error: any = null;
+      try {
+        data = await pb.collection("user_roles").getFirstListItem(`user_id = "${userId}" && role = "admin"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { error = err; }
+      }
 
       const user = users.find(u => u.user_id === userId);
       const isAdmin = !!existingRole || user?.subscription_tier === "admin";
@@ -490,8 +534,6 @@ export default function Admin() {
       if (action === "remove") {
         await pb.collection("user_roles").getFullList({});
           .delete()
-          .eq("user_id", userId)
-          .eq("role", "admin");
         
         toast({ title: "Rôle admin retiré" });
       } else {
@@ -528,10 +570,13 @@ export default function Admin() {
       for (const limit of subscriptionLimits) {
         const edits = editingLimits[limit.tier];
         if (edits && Object.keys(edits).length > 0) {
-          let _d = null, _e = null; try { _d = await pb.collection("subscription_limits").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .update(edits)
-            .eq("id", limit.id);
+          let data: any[] = [];
+          let error: any = null;
+          try {
+            fetchData = await pb.collection("subscription_limits").getFullList({filter: `id = "${limit.id}"`});
+          } catch (err: any) {
+            error = err;
+          }
           
           if (error) throw error;
         }
@@ -571,10 +616,13 @@ export default function Admin() {
 
   const toggleTraitementValidation = async (traitementId: string, currentStatus: boolean) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ is_validated: !currentStatus })
-        .eq("id", traitementId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("traitement_types").getFullList({filter: `id = "${traitementId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -600,10 +648,13 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette séance ?")) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", seanceId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("seance_types").getFullList({filter: `id = "${seanceId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -623,10 +674,13 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce traitement ?")) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", traitementId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("traitement_types").getFullList({filter: `id = "${traitementId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -645,10 +699,13 @@ export default function Admin() {
   const toggleExerciceValidation = async (exerciceId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'shared' ? 'pending' : 'shared';
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ status: newStatus })
-        .eq("id", exerciceId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({filter: `id = "${exerciceId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -674,10 +731,13 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet exercice ?")) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", exerciceId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({filter: `id = "${exerciceId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -701,8 +761,6 @@ export default function Admin() {
         // Remove consultation record
         await pb.collection("exercice_consultations").getFullList({});
           .delete()
-          .eq("exercice_id", exerciceId)
-          .eq("user_id", user.id);
         
         setConsultedExerciceIds(prev => {
           const newSet = new Set(prev);
@@ -740,16 +798,18 @@ export default function Admin() {
     if (!newModelTitle.trim() || !newModelContent.trim() || !user) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("certificat_models").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: newModelTitle,
           content: newModelContent,
           is_platform: true,
         })
-        .select()
-        .single();
 
       if (error) throw error;
 
@@ -783,13 +843,16 @@ export default function Admin() {
     if (!editingModelId || !editModelTitle.trim()) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("certificat_models").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: editModelTitle,
           content: editModelContent,
         })
-        .eq("id", editingModelId);
 
       if (error) throw error;
 
@@ -818,10 +881,13 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce modèle ?")) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", modelId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("certificat_models").getFullList({filter: `id = "${modelId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

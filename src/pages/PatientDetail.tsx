@@ -123,11 +123,13 @@ export default function PatientDetail() {
   }, [user, id]);
 
   const fetchPatient = async () => {
-    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("patients").getFirstListItem(`id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -143,11 +145,13 @@ export default function PatientDetail() {
   };
 
   const fetchCarePlan = async () => {
-    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("*, bilan_initial_data")
-      .eq("patient_id", id)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("patient_care_plans").getFirstListItem(`patient_id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (data) {
       setCarePlan({
@@ -174,20 +178,26 @@ export default function PatientDetail() {
       }
       
       if (data.active_traitement_id) {
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("pathologie")
-          .eq("id", data.active_traitement_id)
-          .maybeSingle();
+        let data: any = null;
+        let error: any = null;
+        try {
+          data = await pb.collection("traitement_types").getFirstListItem(`id = "${data.active_traitement_id}"`);
+        } catch (err: any) {
+          if (err?.status !== 404) { error = err; }
+        }
         
         if (traitement) {
           setActiveTraitementName(traitement.pathologie);
         }
 
         // Fetch seances of the treatment with their dates
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select(`
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          seanceDatesData = await pb.collection("traitement_seances").getFullList({});
+        } catch (err: any) {
+          error = err;
+        }
             ordre,
             seance_type_id,
             seance_types (
@@ -196,15 +206,15 @@ export default function PatientDetail() {
               pathologies
             )
           `)
-          .eq("traitement_type_id", data.active_traitement_id)
-          .order("ordre", { ascending: true });
 
         // Fetch seance dates for this patient and treatment
-        let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("seance_ordre, seance_date")
-          .eq("patient_id", id)
-          .eq("traitement_id", data.active_traitement_id);
+        let seanceDatesData: any[] = [];
+        let error: any = null;
+        try {
+          seanceDatesData = await pb.collection("patient_traitement_seance_dates").getFullList({filter: `patient_id = "${id}" && traitement_id = "${seanceDatesData.active_traitement_id}"`});
+        } catch (err: any) {
+          error = err;
+        }
 
         const datesMap = new Map<number, string | null>();
         seanceDatesData?.forEach((d) => {
@@ -223,12 +233,13 @@ export default function PatientDetail() {
         }
 
         // Fetch bilans intermediaires
-        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("id, position_after_seance, bilan_date, content")
-          .eq("patient_id", id)
-          .eq("traitement_id", data.active_traitement_id)
-          .order("position_after_seance", { ascending: true });
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          bilansData = await pb.collection("patient_bilans").getFullList({filter: `patient_id = "${id}" && traitement_id = "${bilansData.active_traitement_id}"`, sort: "position_after_seance"});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (bilansData) {
           setBilansIntermediaires(bilansData);
@@ -252,9 +263,13 @@ export default function PatientDetail() {
     setSaving(true);
     
     // Save patient data
-    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .update({
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      formData = await pb.collection("patients").getFullList({});
+    } catch (err: any) {
+      error = err;
+    }
         name: formData.name,
         status: formData.status,
         has_mutual: formData.has_mutual ?? false,
@@ -267,7 +282,6 @@ export default function PatientDetail() {
         blood_type: formData.blood_type,
         antecedents: formData.antecedents,
       })
-      .eq("id", id);
     
     if (patientError) {
       toast({ title: "Erreur", description: patientError.message, variant: "destructive" });
@@ -287,11 +301,14 @@ export default function PatientDetail() {
           bilan_initial_date: carePlan.bilan_initial_date,
           traitement_start_date: carePlan.traitement_start_date,
         })
-        .eq("id", carePlan.id);
     } else {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_care_plans").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           patient_id: id,
           user_id: user.id,
           comments: carePlan.comments,
@@ -302,8 +319,6 @@ export default function PatientDetail() {
           bilan_initial_date: carePlan.bilan_initial_date,
           traitement_start_date: carePlan.traitement_start_date,
         })
-        .select()
-        .single();
       
       if (newPlan) {
         setCarePlan({ ...carePlan, id: newPlan.id });
@@ -334,9 +349,13 @@ export default function PatientDetail() {
 
     try {
       // Create new patient with same data (except numero)
-      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patients").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           name: `${patient.name} (copie)`,
           status: patient.status,
@@ -350,8 +369,6 @@ export default function PatientDetail() {
           blood_type: patient.blood_type,
           antecedents: patient.antecedents,
         })
-        .select()
-        .single();
 
       if (patientError || !newPatient) {
         throw patientError || new Error("Erreur lors de la création du patient");
@@ -403,7 +420,6 @@ export default function PatientDetail() {
         blood_type: formData.blood_type,
         antecedents: formData.antecedents,
       })
-      .eq("id", id);
 
     // Save or update care plan
     if (carePlan.id) {
@@ -417,11 +433,14 @@ export default function PatientDetail() {
           bilan_initial_date: carePlan.bilan_initial_date,
           traitement_start_date: carePlan.traitement_start_date,
         })
-        .eq("id", carePlan.id);
     } else {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_care_plans").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           patient_id: id,
           user_id: user.id,
           comments: carePlan.comments,
@@ -432,8 +451,6 @@ export default function PatientDetail() {
           bilan_initial_date: carePlan.bilan_initial_date,
           traitement_start_date: carePlan.traitement_start_date,
         })
-        .select()
-        .single();
       
       if (newPlan) {
         setCarePlan(prev => ({ ...prev, id: newPlan.id }));
@@ -448,13 +465,14 @@ export default function PatientDetail() {
     // Set the treatment visibility to hidden by default when assigned to a patient
     await pb.collection("traitement_types").getFullList({});
       .update({ is_hidden_from_list: true })
-      .eq("id", traitementId);
     
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pathologie")
-      .eq("id", traitementId)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_types").getFirstListItem(`id = "${traitementId}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (traitement) {
       setActiveTraitementName(traitement.pathologie);
@@ -464,11 +482,14 @@ export default function PatientDetail() {
     if (newCarePlan.id) {
       await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: traitementId })
-        .eq("id", newCarePlan.id);
     } else if (user && id) {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_care_plans").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           patient_id: id,
           user_id: user.id,
           comments: newCarePlan.comments,
@@ -477,8 +498,6 @@ export default function PatientDetail() {
           objectifs_prise_en_charge: newCarePlan.objectifs_prise_en_charge,
           active_traitement_id: traitementId,
         })
-        .select()
-        .single();
       
       if (newPlan) {
         setCarePlan({ ...newCarePlan, id: newPlan.id });
@@ -498,13 +517,13 @@ export default function PatientDetail() {
     // Fetch the latest traitement created by this user to set as active
     if (!user) return;
     
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, pathologie")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_types").getFirstListItem(`user_id = "${user.id}"`,sort: "-created_at");
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (latestTraitement) {
       // Use handleSelectTraitement to both update state and save to DB
@@ -520,7 +539,6 @@ export default function PatientDetail() {
     if (carePlan.id) {
       await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: null })
-        .eq("id", carePlan.id);
       toast({ title: "Traitement retiré" });
     }
   };

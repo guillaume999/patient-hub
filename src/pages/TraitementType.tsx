@@ -177,34 +177,46 @@ export default function TraitementType() {
     setLoading(true);
     try {
       // Fetch user profile
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("pseudo, can_share")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+      let profileData: any = null;
+      let error: any = null;
+      try {
+        profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user!.id}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { error = err; }
+      }
 
       setUserPseudo(profileData?.pseudo || null);
       setUserCanShare(profileData?.can_share !== false);
 
       // Fetch featured traitements
-      let _d = null, _e = null; try { _d = await pb.collection("featured_traitements").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("traitement_type_id");
+      let profileData: any[] = [];
+      let traitementsError: any = null;
+      try {
+        profileData = await pb.collection("featured_traitements").getFullList({});
+      } catch (err: any) {
+        traitementsError = err;
+      }
       setFeaturedTraitementIds(featuredData?.map((f) => f.traitement_type_id) || []);
 
       // Fetch traitements
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let profileData: any[] = [];
+      let traitementsError: any = null;
+      try {
+        profileData = await pb.collection("traitement_types").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        traitementsError = err;
+      }
 
       if (traitementsError) throw traitementsError;
 
       // Fetch which traitements are used by patients
-      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("active_traitement_id")
-        .not("active_traitement_id", "is", null);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        traitementsData = await pb.collection("patient_care_plans").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
 
       const usedTraitementIds = new Set(
         (usedTraitements || []).map((p) => p.active_traitement_id)
@@ -213,26 +225,32 @@ export default function TraitementType() {
       // Fetch tests and seances for each traitement
       const traitementsWithDetails = await Promise.all(
         (traitementsData || []).map(async (traitement) => {
-          let _d = null, _e = null; try { _d = await pb.collection("traitement_tests").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("*, exercices(id, title, description, thumbnail_url, video_url)")
-            .eq("traitement_type_id", traitement.id)
-            .order("ordre", { ascending: true });
+          let traitementsData: any[] = [];
+          let error: any = null;
+          try {
+            traitementsData = await pb.collection("traitement_tests").getFullList({filter: `traitement_type_id = "${traitement.id}"`, sort: "ordre"});
+          } catch (err: any) {
+            error = err;
+          }
 
-          let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("*, seance_types(id, pathologie, objectif_principal, pathologies, objectifs_principaux)")
-            .eq("traitement_type_id", traitement.id)
-            .order("ordre", { ascending: true });
+          let traitementsData: any[] = [];
+          let error: any = null;
+          try {
+            traitementsData = await pb.collection("traitement_seances").getFullList({filter: `traitement_type_id = "${traitement.id}"`, sort: "ordre"});
+          } catch (err: any) {
+            error = err;
+          }
 
           // Fetch exercices for each seance
           const seancesWithExercices = await Promise.all(
             (seancesData || []).map(async (seance) => {
-              let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-                      const data = _d; const error = _e;
-                .select("*, exercices(id, title, description, thumbnail_url, video_url)")
-                .eq("seance_type_id", seance.seance_type_id)
-                .order("ordre", { ascending: true });
+              let traitementsData: any[] = [];
+              let error: any = null;
+              try {
+                traitementsData = await pb.collection("seance_exercices").getFullList({filter: `seance_type_id = "${seance.seance_type_id}"`, sort: "ordre"});
+              } catch (err: any) {
+                error = err;
+              }
 
               return {
                 ...seance,
@@ -313,7 +331,6 @@ export default function TraitementType() {
     try {
       await pb.collection("traitement_types").getFullList({});
         .update({ is_shared: !currentlyShared, is_validated: false })
-        .eq("id", traitementId);
 
       toast.success(currentlyShared ? "Traitement non partagé" : "Traitement partagé (en attente de validation)");
       fetchData();
@@ -349,9 +366,13 @@ export default function TraitementType() {
 
     try {
       // Create the traitement copy
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let traitementError: any = null;
+      try {
+        data = await pb.collection("traitement_types").getFullList({});
+      } catch (err: any) {
+        traitementError = err;
+      }
           user_id: user.id,
           pathologie: traitement.pathologie,
           description: traitement.description,
@@ -360,8 +381,6 @@ export default function TraitementType() {
           is_copy: traitement.user_id !== user.id,
           original_id: traitement.user_id !== user.id ? traitement.id : null
         })
-        .select()
-        .single();
 
       if (traitementError) throw traitementError;
 

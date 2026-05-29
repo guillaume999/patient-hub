@@ -126,26 +126,33 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     if (!user) return;
 
     // Fetch user pseudo
-    let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pseudo")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    let profileData: any = null;
+    let error: any = null;
+    try {
+      profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user.id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     setUserPseudo(profileData?.pseudo || null);
 
     // Fetch pathologies
-    let _d = null, _e = null; try { _d = await pb.collection("pathologies").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("name")
-      .eq("user_id", user.id);
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("pathologies").getFullList({filter: `user_id = "${user.id}"`});
+    } catch (err: any) {
+      error = err;
+    }
     setAvailablePathologies([...new Set(((pathoData as any[]) ?? []).map((p: any) => p.name as string))]);
 
     // Fetch seances (user's own seances)
-    let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, code, pathologie, pathologies, objectif_principal, objectifs_principaux")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("seance_types").getFullList({filter: `user_id = "${user.id}"`, sort: "-created_at"});
+    } catch (err: any) {
+      error = err;
+    }
     
     setAvailableSeances(seancesData?.map(s => ({
       ...s,
@@ -155,11 +162,13 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     })) || []);
 
     // Fetch exercices (user's own + platform exercices)
-    let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, code, title, description, thumbnail_url, pathologie_tags")
-      .or(`user_id.eq.${user.id},status.eq.shared`)
-      .order("title", { ascending: true });
+    let profileData: any[] = [];
+    let error: any = null;
+    try {
+      profileData = await pb.collection("exercices").getFullList({sort: "title"});
+    } catch (err: any) {
+      error = err;
+    }
     
     setAvailableExercices(exercicesData?.map(e => ({
       ...e,
@@ -179,11 +188,13 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
       if (!seanceExercices[seanceId]) {
         setLoadingSeanceExercices(prev => new Set(prev).add(seanceId));
         
-        let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("id, name, description, series, repetitions, duration_seconds, exercices:exercice_id(id, title, thumbnail_url)")
-          .eq("seance_type_id", seanceId)
-          .order("ordre", { ascending: true });
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          data = await pb.collection("seance_exercices").getFullList({filter: `seance_type_id = "${seanceId}"`, sort: "ordre"});
+        } catch (err: any) {
+          error = err;
+        }
         
         setSeanceExercices(prev => ({ ...prev, [seanceId]: data || [] }));
         setLoadingSeanceExercices(prev => {
@@ -300,13 +311,16 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
 
       if (traitement?.id) {
         // Update existing traitement
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update({
+        let data: any[] = [];
+        let updateError: any = null;
+        try {
+          data = await pb.collection("traitement_types").getFullList({});
+        } catch (err: any) {
+          updateError = err;
+        }
             pathologie: finalPathologie,
             description
           })
-          .eq("id", traitement.id);
 
         if (updateError) throw updateError;
 
@@ -336,9 +350,13 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
         toast.success("Traitement modifié avec succès");
       } else {
         // Create new traitement
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let insertError: any = null;
+        try {
+          data = await pb.collection("traitement_types").getFullList({});
+        } catch (err: any) {
+          insertError = err;
+        }
             user_id: user.id,
             pathologie: finalPathologie,
             description,
@@ -347,8 +365,6 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
             is_copy: false,
             is_hidden_from_list: isHiddenFromList
           })
-          .select()
-          .single();
 
         if (insertError) throw insertError;
 

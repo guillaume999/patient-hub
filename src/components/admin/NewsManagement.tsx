@@ -89,10 +89,13 @@ export function NewsManagement() {
 
   const fetchNews = async () => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("news").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setNews(data || []);
@@ -115,17 +118,19 @@ export function NewsManagement() {
     if (!categoryToUse) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("news").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: newTitle,
           description: newDescription,
           category: categoryToUse,
           is_new: newIsNew,
           created_by: user.id,
         })
-        .select()
-        .single();
 
       if (error) throw error;
 
@@ -184,15 +189,18 @@ export function NewsManagement() {
     if (!categoryToUse) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("news").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: editTitle,
           description: editDescription,
           category: categoryToUse,
           is_new: editIsNew,
         })
-        .eq("id", editingId);
 
       if (error) throw error;
 
@@ -217,10 +225,13 @@ export function NewsManagement() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette actualité ?")) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("news").getFullList({filter: `id = "${id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

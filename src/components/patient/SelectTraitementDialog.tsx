@@ -55,21 +55,22 @@ export function SelectTraitementDialog({
 
     try {
       // Fetch personal traitements (not hidden from list)
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("id, pathologie, description, author_name, is_shared")
-        .eq("user_id", user.id)
-        .eq("is_hidden_from_list", false)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("traitement_types").getFullList({filter: `user_id = "${user.id}" && is_hidden_from_list = false`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       // Fetch shared/platform traitements (validated and not user's own)
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("id, pathologie, description, author_name, is_shared")
-        .eq("is_shared", true)
-        .eq("is_validated", true)
-        .neq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("traitement_types").getFullList({filter: `is_shared = true && is_validated = true && user_id != user.id`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       // Fetch counts for personal traitements
       const personalWithCounts = await Promise.all(

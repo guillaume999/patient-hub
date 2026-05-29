@@ -144,12 +144,13 @@ export default function Journal() {
     setLoading(true);
     
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("user_activity_logs").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(500);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("user_activity_logs").getFullList({filter: `user_id = "${user.id}"`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setLogs(data || []);
@@ -190,10 +191,13 @@ export default function Journal() {
     setClearing(true);
     
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("user_activity_logs").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("user_id", user.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("user_activity_logs").getFullList({filter: `user_id = "${user.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       

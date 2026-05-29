@@ -84,21 +84,25 @@ export function ImportTraitementDialog({
 
   const fetchUserPseudo = async () => {
     if (!user) return;
-    let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pseudo")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("profiles").getFirstListItem(`user_id = "${user.id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     setUserPseudo(data?.pseudo || null);
   };
 
   const fetchTraitements = async () => {
     setLoading(true);
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, pathologie, description, author_name, is_shared, is_validated, user_id")
-      .eq("is_hidden_from_list", false)
-      .order("created_at", { ascending: false });
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_types").getFullList({filter: `is_hidden_from_list = false`, sort: "-created_at"});
+    } catch (err: any) {
+      error = err;
+    }
 
     if (!error && data) {
       setTraitements(data);
@@ -111,15 +115,17 @@ export function ImportTraitementDialog({
     
     setLoadingSeances(prev => new Set(prev).add(traitementId));
     
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select(`
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_seances").getFullList({});
+    } catch (err: any) {
+      error = err;
+    }
         id,
         ordre,
         seance_type:seance_types(id, pathologie, pathologies, objectif_principal, objectifs_principaux)
       `)
-      .eq("traitement_type_id", traitementId)
-      .order("ordre", { ascending: true });
 
     if (!error && data) {
       setSeancesMap(prev => ({ ...prev, [traitementId]: data as TraitementSeance[] }));
@@ -137,9 +143,13 @@ export function ImportTraitementDialog({
     
     setLoadingExercices(prev => new Set(prev).add(seanceId));
     
-    let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select(`
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("seance_exercices").getFullList({});
+    } catch (err: any) {
+      error = err;
+    }
         id,
         ordre,
         series,
@@ -147,8 +157,6 @@ export function ImportTraitementDialog({
         duration_seconds,
         exercice:exercices(id, title, thumbnail_url)
       `)
-      .eq("seance_type_id", seanceId)
-      .order("ordre", { ascending: true });
 
     if (!error && data) {
       setExercicesMap(prev => ({ ...prev, [seanceId]: data }));
@@ -207,9 +215,13 @@ export function ImportTraitementDialog({
     setCopying(true);
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let traitementError: any = null;
+      try {
+        testsData = await pb.collection("traitement_types").getFullList({});
+      } catch (err: any) {
+        traitementError = err;
+      }
           user_id: user.id,
           pathologie: traitement.pathologie,
           description: traitement.description,
@@ -219,16 +231,16 @@ export function ImportTraitementDialog({
           is_hidden_from_list: true,
           original_id: traitement.id
         })
-        .select()
-        .single();
 
       if (traitementError) throw traitementError;
 
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_tests").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("traitement_type_id", traitement.id)
-        .order("ordre", { ascending: true });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        testsData = await pb.collection("traitement_tests").getFullList({filter: `traitement_type_id = "${traitement.id}"`, sort: "ordre"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (testsData && testsData.length > 0) {
         for (const test of testsData) {
@@ -241,11 +253,13 @@ export function ImportTraitementDialog({
         }
       }
 
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("traitement_type_id", traitement.id)
-        .order("ordre", { ascending: true });
+      let testsData: any[] = [];
+      let error: any = null;
+      try {
+        seancesData = await pb.collection("traitement_seances").getFullList({filter: `traitement_type_id = "${traitement.id}"`, sort: "ordre"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (seancesData && seancesData.length > 0) {
         for (const seance of seancesData) {

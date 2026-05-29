@@ -64,10 +64,13 @@ export function PopupsManagement() {
 
   const fetchPopups = async () => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("page_key");
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("admin_popups").getFullList({sort: "page_key"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setPopups(data || []);
@@ -97,14 +100,17 @@ export function PopupsManagement() {
     if (!editingPopup) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        formData = await pb.collection("admin_popups").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: formData.title,
           content: formData.content,
           is_active: formData.is_active,
         })
-        .eq("id", editingPopup.id);
 
       if (error) throw error;
 
@@ -120,10 +126,13 @@ export function PopupsManagement() {
 
   const handleToggleActive = async (popup: Popup) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ is_active: !popup.is_active })
-        .eq("id", popup.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("admin_popups").getFullList({filter: `id = "${popup.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

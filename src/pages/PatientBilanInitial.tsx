@@ -143,21 +143,25 @@ export default function PatientBilanInitial() {
   }, [user, id]);
 
   const fetchPatientData = async () => {
-    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("name")
-      .eq("id", id)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("patients").getFirstListItem(`id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
 
     if (patient) {
       setPatientName(patient.name);
     }
 
-    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("bilan_initial_data")
-      .eq("patient_id", id)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("patient_care_plans").getFirstListItem(`patient_id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
 
     if (carePlan?.bilan_initial_data) {
       try {
@@ -179,16 +183,17 @@ export default function PatientBilanInitial() {
 
     const bilanJson = JSON.stringify(bilan);
 
-    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id")
-      .eq("patient_id", id)
-      .maybeSingle();
+    let BilanData: any = null;
+    let error: any = null;
+    try {
+      BilanData = await pb.collection("patient_care_plans").getFirstListItem(`patient_id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
 
     if (existingPlan) {
       await pb.collection("patient_care_plans").getFullList({});
         .update({ bilan_initial_data: bilanJson })
-        .eq("id", existingPlan.id);
     } else {
       await pb.collection("patient_care_plans").getFullList({});
         .insert({

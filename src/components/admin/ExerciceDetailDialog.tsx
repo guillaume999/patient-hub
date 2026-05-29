@@ -85,10 +85,13 @@ export function ExerciceDetailDialog({
     setLoading(true);
     try {
       const newStatus = exercice.status === "shared" ? "pending" : "shared";
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ status: newStatus, rejection_reason: null })
-        .eq("id", exercice.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({filter: `id = "${exercice.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -121,13 +124,16 @@ export function ExerciceDetailDialog({
 
     setLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ 
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           status: "rejected",
           rejection_reason: rejectionReason.trim()
         })
-        .eq("id", exercice.id);
 
       if (error) throw error;
 
@@ -155,10 +161,13 @@ export function ExerciceDetailDialog({
 
     setLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", exercice.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({filter: `id = "${exercice.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -182,10 +191,13 @@ export function ExerciceDetailDialog({
     try {
       if (isFeatured) {
         // Remove from featured
-        let _d = null, _e = null; try { _d = await pb.collection("featured_exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .delete()
-          .eq("exercice_id", exercice.id);
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          data = await pb.collection("featured_exercices").getFullList({filter: `exercice_id = "${exercice.id}"`});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (error) throw error;
 

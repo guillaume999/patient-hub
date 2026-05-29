@@ -41,11 +41,13 @@ export default function PatientTraitementActif() {
     setLoading(true);
     
     // Fetch patient
-    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("name")
-      .eq("id", id)
-      .maybeSingle();
+    let data: any = null;
+    let patientError: any = null;
+    try {
+      data = await pb.collection("patients").getFirstListItem(`id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { patientError = err; }
+    }
     
     if (patientError || !patient) {
       toast({ title: "Patient non trouvé", variant: "destructive" });
@@ -56,22 +58,26 @@ export default function PatientTraitementActif() {
     setPatientName(patient.name);
     
     // Fetch care plan
-    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, active_traitement_id")
-      .eq("patient_id", id)
-      .maybeSingle();
+    let data: any = null;
+    let patientError: any = null;
+    try {
+      data = await pb.collection("patient_care_plans").getFirstListItem(`patient_id = "${id}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (carePlan) {
       setCarePlanId(carePlan.id);
       setActiveTraitementId(carePlan.active_traitement_id);
       
       if (carePlan.active_traitement_id) {
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("pathologie")
-          .eq("id", carePlan.active_traitement_id)
-          .maybeSingle();
+        let data: any = null;
+        let error: any = null;
+        try {
+          data = await pb.collection("traitement_types").getFirstListItem(`id = "${carePlan.active_traitement_id}"`);
+        } catch (err: any) {
+          if (err?.status !== 404) { error = err; }
+        }
         
         if (traitement) {
           setActiveTraitementName(traitement.pathologie);
@@ -88,13 +94,14 @@ export default function PatientTraitementActif() {
     // Set the treatment visibility to hidden by default when assigned to a patient
     await pb.collection("traitement_types").getFullList({});
       .update({ is_hidden_from_list: true })
-      .eq("id", traitementId);
     
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pathologie")
-      .eq("id", traitementId)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_types").getFirstListItem(`id = "${traitementId}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (traitement) {
       setActiveTraitementName(traitement.pathologie);
@@ -104,17 +111,18 @@ export default function PatientTraitementActif() {
     if (carePlanId) {
       await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: traitementId })
-        .eq("id", carePlanId);
     } else {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_care_plans").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           patient_id: id,
           user_id: user.id,
           active_traitement_id: traitementId,
         })
-        .select()
-        .single();
       
       if (newPlan) {
         setCarePlanId(newPlan.id);
@@ -133,13 +141,13 @@ export default function PatientTraitementActif() {
   const handleCreateTraitementSuccess = async () => {
     if (!user) return;
     
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, pathologie")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_types").getFirstListItem(`user_id = "${user.id}"`,sort: "-created_at");
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
     
     if (latestTraitement) {
       await handleSelectTraitement(latestTraitement.id);
@@ -153,7 +161,6 @@ export default function PatientTraitementActif() {
     if (carePlanId) {
       await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: null })
-        .eq("id", carePlanId);
       toast({ title: "Traitement retiré" });
     }
   };

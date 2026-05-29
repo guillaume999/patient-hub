@@ -171,37 +171,50 @@ export default function Exercices() {
     setLoading(true);
     try {
       // Fetch user profile
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("pseudo, can_share")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+      let profileData: any = null;
+      let error: any = null;
+      try {
+        profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${user!.id}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { error = err; }
+      }
       
       setUserPseudo(profileData?.pseudo || null);
       setUserCanShare(profileData?.can_share !== false);
 
       // Fetch featured exercices
-      let _d = null, _e = null; try { _d = await pb.collection("featured_exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("exercice_id");
+      let profileData: any[] = [];
+      let exercicesError: any = null;
+      try {
+        profileData = await pb.collection("featured_exercices").getFullList({});
+      } catch (err: any) {
+        exercicesError = err;
+      }
       setFeaturedExerciceIds(featuredData?.map((f) => f.exercice_id) || []);
 
       // Fetch exercices
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("created_at", { ascending: false });
+      let profileData: any[] = [];
+      let exercicesError: any = null;
+      try {
+        profileData = await pb.collection("exercices").getFullList({sort: "-created_at"});
+      } catch (err: any) {
+        exercicesError = err;
+      }
 
       if (exercicesError) throw exercicesError;
       setExercices(exercicesData || []);
 
       // Fetch pathologies
-      let _d = null, _e = null; try { _d = await pb.collection("pathologies").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("name");
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        pathoData = await pb.collection("pathologies").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
       setPathologies([...new Set(((pathoData as any[]) ?? []).map((p: any) => p.name as string))]);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching pathoData:", error);
       toast.error("Erreur lors du chargement des données");
     } finally {
       setLoading(false);
@@ -227,21 +240,25 @@ export default function Exercices() {
     const objectName = `${user.id}/${Date.now()}.${fileExt}`;
 
     // Use standard upload instead of TUS for reliability
-    let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .upload(objectName, videoFile, {
-        cacheControl: "3600",
-        upsert: false,
+    let data: any[] = [];
+    let uploadError: any = null;
+    try {
+      // TODO: PocketBase file upload
+
+      uploadError = new Error("File upload not yet implemented for PocketBase");
+    } catch (err: any) {
+      uploadError = err;
+    }
       });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
+      console.uploadError("Upload uploadError:", uploadError);
       throw uploadError;
     }
 
-    let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-    return { publicUrl: data.publicUrl, objectName };
+    // TODO: file upload via PocketBase FormData
+            const formData = _d; const uploadError = _e;
+    return { publicUrl: formData.publicUrl, objectName };
   };
 
   const handleSubmit = async () => {
@@ -274,28 +291,34 @@ export default function Exercices() {
         thumbnailUrl = "";
         
         // Also add to video library
-        let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let videoError: any = null;
+        try {
+          videoData = await pb.collection("videos").getFullList({});
+        } catch (err: any) {
+          videoError = err;
+        }
             user_id: user.id,
             title: formData.title.trim() || formData.videoFile.name,
             video_url: uploaded.publicUrl,
             name: formData.videoFile.name,
             thumbnail_url: null
           })
-          .select()
-          .single();
         
         if (videoError) {
-          console.error("Error adding to video library:", videoError);
+          console.videoError("Error adding to video library:", videoError);
         } else {
           videoId = videoData.id;
         }
       }
 
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        formData = await pb.collection("exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
@@ -351,28 +374,34 @@ export default function Exercices() {
         thumbnailUrl = "";
         
         // Also add to video library
-        let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let videoError: any = null;
+        try {
+          videoData = await pb.collection("videos").getFullList({});
+        } catch (err: any) {
+          videoError = err;
+        }
             user_id: user.id,
             title: formData.title.trim() || formData.videoFile.name,
             video_url: uploaded.publicUrl,
             name: formData.videoFile.name,
             thumbnail_url: null
           })
-          .select()
-          .single();
         
         if (videoError) {
-          console.error("Error adding to video library:", videoError);
+          console.videoError("Error adding to video library:", videoError);
         } else {
           videoId = videoData.id;
         }
       }
 
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        formData = await pb.collection("exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: formData.title.trim(),
           description: formData.description.trim() || null,
           pathologie_tags: tags,
@@ -380,7 +409,6 @@ export default function Exercices() {
           video_url: videoUrl || null,
           thumbnail_url: thumbnailUrl || null
         })
-        .eq("id", selectedExercice.id);
 
       if (error) throw error;
 
@@ -441,28 +469,37 @@ export default function Exercices() {
       // Toggle between draft and pending status
       if (exercice.status === "pending") {
         // Cancel the pending share - revert to draft
-        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update({ status: "draft" })
-          .eq("id", exercice.id);
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          fetchData = await pb.collection("exercices").getFullList({filter: `id = "${exercice.id}"`});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (error) throw error;
         toast.success("Demande de partage annulée");
       } else if (exercice.status === "draft") {
         // Submit for sharing - change to pending
-        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update({ status: "pending" })
-          .eq("id", exercice.id);
+        let fetchData: any[] = [];
+        let error: any = null;
+        try {
+          fetchData = await pb.collection("exercices").getFullList({filter: `id = "${exercice.id}"`});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (error) throw error;
         toast.success("Exercice soumis pour validation");
       } else if (exercice.status === "shared") {
         // Already shared - revert to draft (unshare)
-        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .update({ status: "draft" })
-          .eq("id", exercice.id);
+        let fetchData: any[] = [];
+        let error: any = null;
+        try {
+          fetchData = await pb.collection("exercices").getFullList({filter: `id = "${exercice.id}"`});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (error) throw error;
         toast.success("Exercice retiré du partage");
@@ -479,7 +516,6 @@ export default function Exercices() {
     try {
       await pb.collection("exercices").getFullList({});
         .update({ status: "shared" })
-        .eq("id", exercice.id);
       
       toast.success("Exercice validé et partagé");
       fetchData();
@@ -494,9 +530,13 @@ export default function Exercices() {
 
     try {
       // Create a copy for platform
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        fetchData = await pb.collection("exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: exercice.title,
           description: exercice.description,
@@ -509,8 +549,6 @@ export default function Exercices() {
           original_id: exercice.id,
           status: "shared"
         })
-        .select()
-        .single();
 
       if (copyError) throw copyError;
 
@@ -533,7 +571,6 @@ export default function Exercices() {
     try {
       await pb.collection("featured_exercices").getFullList({});
         .delete()
-        .eq("exercice_id", exerciceId);
 
       toast.success("Exercice retiré de PhysioOfficeExercices");
       fetchData();
@@ -547,9 +584,13 @@ export default function Exercices() {
     if (!user) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        fetchData = await pb.collection("exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           title: exercice.title,
           description: exercice.description,
@@ -582,7 +623,6 @@ export default function Exercices() {
         // Soft delete - mark as deleted by author
         await pb.collection("exercices").getFullList({});
           .update({ deleted_by_author: true })
-          .eq("id", exercice.id);
         toast.success("Exercice retiré de votre bibliothèque");
       } else {
         // Hard delete for draft exercises
@@ -1182,14 +1222,16 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
   const fetchLibraryVideos = async () => {
     setLibraryLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("id, title, video_url, thumbnail_url")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        formData = await pb.collection("videos").getFullList({filter: `user_id = "${userId}"`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
-      setLibraryVideos(data || []);
+      setLibraryVideos(formData || []);
     } catch (error) {
       console.error("Error fetching library videos:", error);
       toast.error("Erreur lors du chargement de la vidéothèque");

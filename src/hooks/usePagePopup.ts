@@ -25,15 +25,15 @@ export function usePagePopup(pageKey: string) {
 
       try {
         // Fetch the popup for this page
-        let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*")
-          .eq("page_key", pageKey)
-          .eq("is_active", true)
-          .maybeSingle();
-
-        if (popupError) {
-          console.error("Error fetching popup:", popupError);
+        let popupData: Popup | null = null;
+        try {
+          popupData = await pb.collection("admin_popups").getFirstListItem(
+            `page_key = "${pageKey}" && is_active = true`
+          ) as Popup;
+        } catch (err: any) {
+          if (err?.status !== 404) {
+            console.error("Error fetching popup:", err);
+          }
           setLoading(false);
           return;
         }
@@ -47,18 +47,19 @@ export function usePagePopup(pageKey: string) {
         setPopup(popupData);
 
         // Check if user has dismissed this popup
-        let _d = null, _e = null; try { _d = await pb.collection("user_dismissed_popups").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("id")
-          .eq("popup_id", popupData.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (dismissedError) {
-          console.error("Error checking dismissed status:", dismissedError);
+        let dismissed = false;
+        try {
+          await pb.collection("user_dismissed_popups").getFirstListItem(
+            `popup_id = "${popupData.id}" && user_id = "${user.id}"`
+          );
+          dismissed = true;
+        } catch (err: any) {
+          if (err?.status !== 404) {
+            console.error("Error checking dismissed status:", err);
+          }
         }
 
-        setIsDismissed(!!dismissedData);
+        setIsDismissed(dismissed);
       } catch (err) {
         console.error("Error in usePagePopup:", err);
       } finally {

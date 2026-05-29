@@ -59,29 +59,26 @@ export function ShareResourceDialog({
     setLoading(true);
 
     try {
-      pb.collection("resource_shares").getFullList({});
-        .select("*")
-        .eq("owner_user_id", user.id)
-        .eq("resource_type", resourceType);
-
+      let _filter = `shared_by_user_id = "${user.id}"`;
       if (resourceType === "patient" && resourceId) {
-        query = query.eq("resource_id", resourceId);
+        _filter += ` && resource_id = "${resourceId}"`;
       } else if (resourceType === "planning") {
-        query = query.is("resource_id", null);
+        _filter += ` && resource_id = ""`;
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const sharesRaw = await pb.collection("resource_shares").getFullList({ filter: _filter });
+      const data = sharesRaw;
 
       // Fetch user info for each share
       const sharesWithUsers = await Promise.all(
         (data || []).map(async (share) => {
-          let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("email, pseudo")
-            .eq("user_id", share.shared_with_user_id)
-            .maybeSingle();
+          let profileData: any = null;
+          let error: any = null;
+          try {
+            profileData = await pb.collection("profiles").getFirstListItem(`user_id = "${share.shared_with_user_id}"`);
+          } catch (err: any) {
+            if (err?.status !== 404) { error = err; }
+          }
 
           return {
             ...share,
@@ -130,11 +127,13 @@ export function ShareResourceDialog({
     setSubmitting(true);
     try {
       // Find user by email
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("user_id")
-        .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
+      let profileData: any = null;
+      let profileError: any = null;
+      try {
+        profileData = await pb.collection("profiles").getFirstListItem(`email = "${email.trim(}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { profileError = err; }
+      }
 
       if (profileError) throw profileError;
 
@@ -165,9 +164,13 @@ export function ShareResourceDialog({
         expires_at: getExpirationDate(),
       };
 
-      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upsert(shareData, {
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("resource_shares").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           onConflict: "owner_user_id,shared_with_user_id,resource_type,resource_id",
         });
 
@@ -194,10 +197,13 @@ export function ShareResourceDialog({
 
   const handleRemoveShare = async (shareId: string) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", shareId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("resource_shares").getFullList({filter: `id = "${shareId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -219,10 +225,13 @@ export function ShareResourceDialog({
 
   const handleUpdatePermission = async (shareId: string, newPermission: string) => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ permission: newPermission })
-        .eq("id", shareId);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("resource_shares").getFullList({filter: `id = "${shareId}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 

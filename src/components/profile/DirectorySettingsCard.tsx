@@ -191,11 +191,13 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
 
   const fetchEntries = async () => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("practitioner_directory").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: true });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("practitioner_directory").getFullList({filter: `user_id = "${userId}"`, sort: "created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) {
         console.error("Error fetching directory:", error);
@@ -260,18 +262,22 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
       if (entry.id) {
         await pb.collection("practitioner_directory").update(entry.id, {});
       } else {
-        let _d = null, _e = null; try { _d = await pb.collection("practitioner_directory").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert(payload)
-          .select("id")
-          .single();
-        error = insertError;
-        if (!error && inserted) {
+        let data: any = null;
+        let insertError: any = null;
+        try {
+          const _r = await pb.collection("practitioner_directory").getList(1, 1, {});
+          data = _r.items[0] ?? null;
+          if (!data) throw new Error("Not found");
+        } catch (err: any) {
+          insertError = err;
+        }
+        insertError = insertError;
+        if (!insertError && inserted) {
           setEntries((prev) => prev.map((e, i) => i === index ? { ...e, id: inserted.id } : e));
         }
       }
 
-      if (error) {
+      if (insertError) {
         toast({ title: "Erreur", description: "Impossible de sauvegarder la fiche", variant: "destructive" });
       } else {
         toast({ title: "Fiche enregistrée", description: entry.is_visible ? "Votre fiche est visible dans l'annuaire" : "Votre fiche est masquée" });

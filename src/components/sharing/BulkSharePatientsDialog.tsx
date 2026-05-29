@@ -103,11 +103,13 @@ export function BulkSharePatientsDialog({ patients, trigger }: BulkSharePatients
     setSubmitting(true);
     try {
       // Find user by email
-      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("user_id")
-        .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
+      let profileData: any = null;
+      let profileError: any = null;
+      try {
+        profileData = await pb.collection("profiles").getFirstListItem(`email = "${email.trim(}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { profileError = err; }
+      }
 
       if (profileError) throw profileError;
 
@@ -141,9 +143,13 @@ export function BulkSharePatientsDialog({ patients, trigger }: BulkSharePatients
         expires_at: expiresAt,
       }));
 
-      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .upsert(shares, {
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("resource_shares").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           onConflict: "owner_user_id,shared_with_user_id,resource_type,resource_id",
         });
 

@@ -69,21 +69,25 @@ export default function PatientCertificats() {
 
   const fetchPatientAndCertificats = async () => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("name")
-        .eq("id", patientId)
-        .single();
+      let data: any = null;
+      let error: any = null;
+      try {
+        data = await pb.collection("patients").getFirstListItem(`id = "${patientId}"`);
+      } catch (err: any) {
+        error = err;
+      }
 
       if (patient) {
         setPatientName(patient.name);
       }
 
-      let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .eq("patient_id", patientId)
-        .order("created_at", { ascending: false });
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("notes").getFullList({filter: `patient_id = "${patientId}"`, sort: "-created_at"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -105,11 +109,13 @@ export default function PatientCertificats() {
 
   const fetchModels = async () => {
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("*")
-        .order("is_platform", { ascending: false })
-        .order("title");
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("certificat_models").getFullList({sort: "-is_platform, title"});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
       setModels(data || []);
@@ -122,16 +128,18 @@ export default function PatientCertificats() {
     if (!newTitle.trim() || !user) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("notes").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: newTitle,
           content: newContent,
           patient_id: patientId,
           user_id: user.id,
         })
-        .select()
-        .single();
 
       if (error) throw error;
 
@@ -183,13 +191,16 @@ export default function PatientCertificats() {
     if (!editingId || !editTitle.trim()) return;
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("notes").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           title: editTitle,
           content: editContent,
         })
-        .eq("id", editingId);
 
       if (error) throw error;
 

@@ -43,10 +43,13 @@ export default function News() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*")
-          .order("created_at", { ascending: false });
+        let data: any[] = [];
+        let error: any = null;
+        try {
+          data = await pb.collection("news").getFullList({sort: "-created_at"});
+        } catch (err: any) {
+          error = err;
+        }
 
         if (error) throw error;
         setNewsItems(data || []);

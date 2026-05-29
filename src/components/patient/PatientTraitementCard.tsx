@@ -175,57 +175,69 @@ export function PatientTraitementCard({
     if (showLoader) setLoading(true);
 
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .select("id, pathologie, description, author_name, is_hidden_from_list")
-        .eq("id", activeTraitementId)
-        .maybeSingle();
+      let traitementData: any = null;
+      let error: any = null;
+      try {
+        traitementData = await pb.collection("traitement_types").getFirstListItem(`id = "${activeTraitementId}"`);
+      } catch (err: any) {
+        if (err?.status !== 404) { error = err; }
+      }
 
       if (traitementData) {
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_tests").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*, exercices(id, title, description, thumbnail_url)")
-          .eq("traitement_type_id", activeTraitementId)
-          .order("ordre", { ascending: true });
+        let traitementData: any[] = [];
+        let error: any = null;
+        try {
+          traitementData = await pb.collection("traitement_tests").getFullList({filter: `traitement_type_id = "${activeTraitementId}"`, sort: "ordre"});
+        } catch (err: any) {
+          error = err;
+        }
 
-        let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*, seance_types(id, pathologie, objectif_principal, pathologies, objectifs_principaux, objectifs_secondaires, is_hidden_from_list, comment)")
-          .eq("traitement_type_id", activeTraitementId)
-          .order("ordre", { ascending: true });
+        let traitementData: any[] = [];
+        let error: any = null;
+        try {
+          traitementData = await pb.collection("traitement_seances").getFullList({filter: `traitement_type_id = "${activeTraitementId}"`, sort: "ordre"});
+        } catch (err: any) {
+          error = err;
+        }
 
         // Fetch bilans for this patient and traitement
-        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("id, position_after_seance, content, bilan_date")
-          .eq("patient_id", patientId)
-          .eq("traitement_id", activeTraitementId)
-          .order("position_after_seance", { ascending: true });
+        let traitementData: any[] = [];
+        let error: any = null;
+        try {
+          traitementData = await pb.collection("patient_bilans").getFullList({filter: `patient_id = "${patientId}" && traitement_id = "${activeTraitementId}"`, sort: "position_after_seance"});
+        } catch (err: any) {
+          error = err;
+        }
 
         // Fetch seance dates for this patient and traitement
-        let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("id, seance_id, seance_ordre, seance_date")
-          .eq("patient_id", patientId)
-          .eq("traitement_id", activeTraitementId)
-          .order("seance_ordre", { ascending: true });
+        let traitementData: any[] = [];
+        let error: any = null;
+        try {
+          traitementData = await pb.collection("patient_traitement_seance_dates").getFullList({filter: `patient_id = "${patientId}" && traitement_id = "${activeTraitementId}"`, sort: "seance_ordre"});
+        } catch (err: any) {
+          error = err;
+        }
 
         // Fetch traitement_start_date from patient_care_plans
-        let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("traitement_start_date, user")
-          .eq("patient_id", patientId)
-          .maybeSingle();
+        let traitementData: any = null;
+        let error: any = null;
+        try {
+          traitementData = await pb.collection("patient_care_plans").getFirstListItem(`patient_id = "${patientId}"`);
+        } catch (err: any) {
+          if (err?.status !== 404) { error = err; }
+        }
         console.log('[debug-author] care plan record:', JSON.stringify(carePlanData));
 
         // Fetch exercices for each seance
         const seancesWithExercices = await Promise.all(
           (seancesData || []).map(async (seance) => {
-            let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-                    const data = _d; const error = _e;
-              .select("*, exercices:exercice_id(id, title, video_url, thumbnail_url, status)")
-              .eq("seance_type_id", seance.seance_type_id)
-              .order("ordre", { ascending: true });
+            let traitementData: any[] = [];
+            let error: any = null;
+            try {
+              traitementData = await pb.collection("seance_exercices").getFullList({filter: `seance_type_id = "${seance.seance_type_id}"`, sort: "ordre"});
+            } catch (err: any) {
+              error = err;
+            }
             
             return {
               ...seance,
@@ -340,12 +352,10 @@ export function PatientTraitementCard({
         // Update the traitement_seances to point to the new seance
         await pb.collection("traitement_seances").getFullList({});
           .update({ seance_type_id: newSeanceId })
-          .eq("id", traitement.seances[editingSeanceIndex].id);
         
         // Mark the new seance as hidden from list
         await pb.collection("seance_types").getFullList({});
           .update({ is_hidden_from_list: true })
-          .eq("id", newSeanceId);
       }
     } else {
       // Adding a new seance to the treatment
@@ -364,19 +374,17 @@ export function PatientTraitementCard({
         // Mark the seance as hidden from list
         await pb.collection("seance_types").getFullList({});
           .update({ is_hidden_from_list: true })
-          .eq("id", newSeanceId);
         
         // Create the date entry for this seance
         if (seanceDate) {
           // Get the just-inserted traitement_seances row id so the date is bound to it
-          let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .select("id")
-            .eq("traitement_type_id", traitement.id)
-            .eq("seance_type_id", newSeanceId)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          let data: any = null;
+          let error: any = null;
+          try {
+            data = await pb.collection("traitement_seances").getFirstListItem(`traitement_type_id = "${traitement.id}" && seance_type_id = "${newSeanceId}"`,sort: "-created_at");
+          } catch (err: any) {
+            if (err?.status !== 404) { error = err; }
+          }
           await pb.collection("patient_traitement_seance_dates").getFullList({});
             .insert({
               patient_id: patientId,
@@ -414,10 +422,13 @@ export function PatientTraitementCard({
 
     if (choice === 'modify_original') {
       // Toggle visibility on the original seance
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ is_hidden_from_list: !selectedSeanceForVisibility.seance_types?.is_hidden_from_list })
-        .eq("id", selectedSeanceForVisibility.seance_type_id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("seance_types").getFullList({filter: `id = "${selectedSeanceForVisibility.seance_type_id}"`});
+      } catch (err: any) {
+        error = err;
+      }
       
       if (error) {
         toast.error("Erreur lors de la mise à jour");
@@ -436,9 +447,13 @@ export function PatientTraitementCard({
         if (!seanceTypes) throw new Error("No seance type data");
 
         // Create new seance_type
-        let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .insert({
+        let data: any[] = [];
+        let createError: any = null;
+        try {
+          data = await pb.collection("seance_types").getFullList({});
+        } catch (err: any) {
+          createError = err;
+        }
             user_id: user.id,
             pathologie: seanceTypes.pathologie,
             objectif_principal: seanceTypes.objectif_principal,
@@ -449,8 +464,6 @@ export function PatientTraitementCard({
             is_hidden_from_list: true, // New seance is hidden from "Séances" list by default
             is_shared: false
           })
-          .select("id")
-          .single();
 
         if (createError) throw createError;
 
@@ -471,17 +484,21 @@ export function PatientTraitementCard({
             ordre: ex.ordre
           }));
 
-          let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-                  const data = _d; const error = _e;
-            .insert(exercisesToInsert);
+          let data: any[] = [];
+          let exercicesError: any = null;
+          try {
+            data = await pb.collection("seance_exercices").getFullList({});
+          } catch (err: any) {
+            exercicesError = err;
+          }
 
           if (exercicesError) throw exercicesError;
         }
 
         toast.success("Nouvelle séance créée et visible dans la liste");
-      } catch (error) {
-        console.error("Error creating new seance:", error);
-        toast.error("Erreur lors de la création de la séance");
+      } catch (exercicesError) {
+        console.exercicesError("Error creating new seance:", exercicesError);
+        toast.exercicesError("Erreur lors de la création de la séance");
       }
     }
 
@@ -495,10 +512,13 @@ export function PatientTraitementCard({
     
     const newValue = !traitement.is_hidden_from_list;
     
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .update({ is_hidden_from_list: newValue })
-      .eq("id", traitement.id);
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_types").getFullList({filter: `id = "${traitement.id}"`});
+    } catch (err: any) {
+      error = err;
+    }
     
     if (error) {
       toast.error("Erreur lors de la mise à jour");
@@ -512,10 +532,13 @@ export function PatientTraitementCard({
   const handleTraitementDateChange = async (date: string) => {
     if (!traitement) return;
     
-    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .update({ traitement_start_date: date || null })
-      .eq("patient_id", patientId);
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("patient_care_plans").getFullList({filter: `patient_id = "${patientId}"`});
+    } catch (err: any) {
+      error = err;
+    }
     
     if (error) {
       toast.error("Erreur lors de la mise à jour de la date");
@@ -533,10 +556,13 @@ export function PatientTraitementCard({
     );
     
     if (existingDate) {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ seance_date: date || null, seance_id: seanceId })
-        .eq("id", existingDate.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_traitement_seance_dates").getFullList({filter: `id = "${existingDate.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
       
       if (error) {
         toast.error("Erreur lors de la mise à jour de la date");
@@ -550,9 +576,13 @@ export function PatientTraitementCard({
         )
       });
     } else {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_traitement_seance_dates").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           patient_id: patientId,
           traitement_id: traitement.id,
           seance_id: seanceId,
@@ -560,8 +590,6 @@ export function PatientTraitementCard({
           seance_date: date || null,
           user_id: user.id
         })
-        .select()
-        .single();
       
       if (error) {
         toast.error("Erreur lors de l'enregistrement de la date");
@@ -578,10 +606,13 @@ export function PatientTraitementCard({
   const handleBilanDateChange = async (bilanId: string, date: string) => {
     if (!traitement) return;
     
-    let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .update({ bilan_date: date || null })
-      .eq("id", bilanId);
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("patient_bilans").getFullList({filter: `id = "${bilanId}"`});
+    } catch (err: any) {
+      error = err;
+    }
     
     if (error) {
       toast.error("Erreur lors de la mise à jour de la date");
@@ -601,10 +632,13 @@ export function PatientTraitementCard({
     
     setSavingSeanceComment(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ comment: comment || null })
-        .eq("id", selectedSeanceForComment.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("seance_types").getFullList({filter: `id = "${selectedSeanceForComment.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -636,29 +670,38 @@ export function PatientTraitementCard({
     setDeletingSeance(true);
     try {
       // 1. Delete all exercises from the seance
-      let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("seance_type_id", selectedSeanceForDelete.id);
+      let data: any[] = [];
+      let exercicesError: any = null;
+      try {
+        data = await pb.collection("seance_exercices").getFullList({filter: `seance_type_id = "${selectedSeanceForDelete.id}"`});
+      } catch (err: any) {
+        exercicesError = err;
+      }
       
       if (exercicesError) throw exercicesError;
 
       // 2. Delete the traitement_seance entry
-      let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", selectedSeanceForDelete.traitementSeanceId);
+      let data: any[] = [];
+      let exercicesError: any = null;
+      try {
+        data = await pb.collection("traitement_seances").getFullList({filter: `id = "${selectedSeanceForDelete.traitementSeanceId}"`});
+      } catch (err: any) {
+        exercicesError = err;
+      }
       
       if (traitementSeanceError) throw traitementSeanceError;
 
       // 3. Delete the seance_type itself (since it's hidden from list and specific to this treatment)
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", selectedSeanceForDelete.id);
+      let data: any[] = [];
+      let seanceTypeError: any = null;
+      try {
+        data = await pb.collection("seance_types").getFullList({filter: `id = "${selectedSeanceForDelete.id}"`});
+      } catch (err: any) {
+        seanceTypeError = err;
+      }
       
       if (seanceTypeError) {
-        console.error("Error deleting seance_type:", seanceTypeError);
+        console.seanceTypeError("Error deleting seance_type:", seanceTypeError);
         // Don't throw - the seance_type might be used elsewhere
       }
 
@@ -666,9 +709,9 @@ export function PatientTraitementCard({
       setDeleteSeanceDialogOpen(false);
       setSelectedSeanceForDelete(null);
       fetchTraitementDetails();
-    } catch (error) {
-      console.error("Error deleting seance:", error);
-      toast.error("Erreur lors de la suppression");
+    } catch (seanceTypeError) {
+      console.seanceTypeError("Error deleting seance:", seanceTypeError);
+      toast.seanceTypeError("Erreur lors de la suppression");
     } finally {
       setDeletingSeance(false);
     }
@@ -679,10 +722,13 @@ export function PatientTraitementCard({
     setDeletingBilan(true);
     
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .delete()
-        .eq("id", selectedBilanForDelete.id);
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_bilans").getFullList({filter: `id = "${selectedBilanForDelete.id}"`});
+      } catch (err: any) {
+        error = err;
+      }
 
       if (error) throw error;
 
@@ -710,10 +756,8 @@ export function PatientTraitementCard({
       await Promise.all([
         pb.collection("seance_exercices").getFullList({});
           .update({ ordre: newIndex + 1 })
-          .eq("id", currentExercice.id),
         pb.collection("seance_exercices").getFullList({});
           .update({ ordre: currentIndex + 1 })
-          .eq("id", swapExercice.id)
       ]);
 
       fetchTraitementDetails();

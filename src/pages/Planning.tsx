@@ -91,11 +91,13 @@ export default function Planning() {
   }, [user, currentDate, viewMode]);
 
   const fetchPatients = async () => {
-    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("id, name, numero, status")
-      .neq("status", "inactive")
-      .order("name");
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("patients").getFullList({filter: "status != "inactive"", sort: "name"});
+    } catch (err: any) {
+      error = err;
+    }
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
     else setPatients(data || []);
   };
@@ -110,13 +112,13 @@ export default function Planning() {
       return;
     }
 
-    let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("*")
-      .eq("user_id", userId)
-      .gte("start_time", weekStart.toISOString())
-      .lte("start_time", weekEnd.toISOString())
-      .order("start_time");
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("appointments").getFullList({filter: `user_id = "${userId}"`, sort: "start_time"});
+    } catch (err: any) {
+      error = err;
+    }
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -171,15 +173,18 @@ export default function Planning() {
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     if (editingAppointmentId) {
-      let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("appointments").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           patient_id: selectedPatientId,
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           notes: appointmentNotes || null,
         })
-        .eq("id", editingAppointmentId);
       if (error) {
         toast({ title: "Erreur", description: error.message, variant: "destructive" });
       } else {
@@ -258,11 +263,13 @@ export default function Planning() {
         const sourceWeekEnd = endOfWeek(sourceDate, { weekStartsOn: 1 });
         const targetWeekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
         
-        let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*")
-          .gte("start_time", sourceWeekStart.toISOString())
-          .lte("start_time", sourceWeekEnd.toISOString());
+        let data: any[] = [];
+        let fetchError: any = null;
+        try {
+          data = await pb.collection("appointments").getFullList({});
+        } catch (err: any) {
+          fetchError = err;
+        }
         
         if (fetchError) throw fetchError;
         
@@ -298,11 +305,13 @@ export default function Planning() {
         const sourceDayEnd = new Date(sourceDate);
         sourceDayEnd.setHours(23, 59, 59, 999);
         
-        let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
-                const data = _d; const error = _e;
-          .select("*")
-          .gte("start_time", sourceDayStart.toISOString())
-          .lte("start_time", sourceDayEnd.toISOString());
+        let data: any[] = [];
+        let fetchError: any = null;
+        try {
+          data = await pb.collection("appointments").getFullList({});
+        } catch (err: any) {
+          fetchError = err;
+        }
         
         if (fetchError) throw fetchError;
         

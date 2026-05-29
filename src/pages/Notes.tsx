@@ -58,11 +58,13 @@ export default function Notes() {
   }, [user]);
 
   const fetchNotes = async () => {
-    let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("*")
-      .is("patient_id", null)
-      .order("updated_at", { ascending: false });
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("notes").getFullList({sort: "-updated_at"});
+    } catch (err: any) {
+      error = err;
+    }
 
     if (error) {
       toast.error("Erreur lors du chargement des notes");
@@ -75,11 +77,15 @@ export default function Notes() {
   const createNote = async () => {
     if (!newTitle.trim() || !user) return;
 
-    let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .insert({ title: newTitle.trim(), content: "", user_id: user.id })
-      .select()
-      .single();
+    let data: any = null;
+    let error: any = null;
+    try {
+      const _r = await pb.collection("notes").getList(1, 1, {});
+      data = _r.items[0] ?? null;
+      if (!data) throw new Error("Not found");
+    } catch (err: any) {
+      error = err;
+    }
 
     if (error) {
       toast.error("Erreur lors de la création");
@@ -98,10 +104,13 @@ export default function Notes() {
     if (!selectedNote) return;
     setSaving(true);
 
-    let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .update({ title: editedTitle, content: editedContent })
-      .eq("id", selectedNote.id);
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("notes").getFullList({filter: `id = "${selectedNote.id}"`});
+    } catch (err: any) {
+      error = err;
+    }
 
     if (error) {
       toast.error("Erreur lors de la sauvegarde");

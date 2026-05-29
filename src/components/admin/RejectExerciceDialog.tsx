@@ -46,13 +46,16 @@ export function RejectExerciceDialog({
 
     setLoading(true);
     try {
-      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .update({ 
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("exercices").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           status: "rejected",
           rejection_reason: rejectionReason.trim()
         })
-        .eq("id", exerciceId);
 
       if (error) throw error;
 

@@ -50,9 +50,13 @@ export function GenerateAccessCodeDialog({
       const expires = new Date();
       expires.setHours(expires.getHours() + 4);
 
-      let _d = null, _e = null; try { _d = await pb.collection("patient_session_access").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("patient_session_access").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           seance_type_id: seanceTypeId,
           patient_id: patientId,
           access_code: code,

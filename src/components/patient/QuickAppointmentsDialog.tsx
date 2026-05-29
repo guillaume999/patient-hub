@@ -106,23 +106,25 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
     setSaving(true);
 
     // 1) Find a template seance_type from existing traitement_seances
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("seance_type_id, ordre")
-      .eq("traitement_type_id", traitementId)
-      .order("ordre", { ascending: false });
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_seances").getFullList({filter: `traitement_type_id = "${traitementId}"`, sort: "-ordre"});
+    } catch (err: any) {
+      error = err;
+    }
 
     const templateSeanceTypeId = existing && existing.length > 0 ? existing[0].seance_type_id : null;
     const maxTraitementOrdre = existing && existing.length > 0 ? existing[0].ordre : 0;
 
     // Also check existing date rows so we don't collide with the unique (patient_id, traitement_id, seance_ordre) constraint
-    let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("seance_ordre")
-      .eq("patient_id", patientId)
-      .eq("traitement_id", traitementId)
-      .order("seance_ordre", { ascending: false })
-      .limit(1);
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("patient_traitement_seance_dates").getFullList({filter: `patient_id = "${patientId}" && traitement_id = "${traitementId}"`, sort: "-seance_ordre"});
+    } catch (err: any) {
+      error = err;
+    }
 
     const maxDateOrdre = existingDates && existingDates.length > 0 ? existingDates[0].seance_ordre : 0;
     const currentMaxOrdre = Math.max(maxTraitementOrdre, maxDateOrdre);
@@ -138,11 +140,13 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
     }
 
     // Fetch the template seance_type data + its exercices so we can clone an independent copy per date
-    let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("pathologie, objectif_principal, pathologies, objectifs_principaux, objectifs_secondaires, comment")
-      .eq("id", templateSeanceTypeId)
-      .maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    try {
+      data = await pb.collection("seance_types").getFirstListItem(`id = "${templateSeanceTypeId}"`);
+    } catch (err: any) {
+      if (err?.status !== 404) { error = err; }
+    }
 
     if (errTemplate || !templateSeance) {
       setSaving(false);
@@ -150,19 +154,25 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       return;
     }
 
-    let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .select("exercice_id, name, description, repetitions, duration_seconds, series, force_1, duration_seconds_2, force_2, comment, ordre")
-      .eq("seance_type_id", templateSeanceTypeId)
-      .order("ordre", { ascending: true });
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("seance_exercices").getFullList({filter: `seance_type_id = "${templateSeanceTypeId}"`, sort: "ordre"});
+    } catch (err: any) {
+      error = err;
+    }
 
     // 2) For each date, create an INDEPENDENT clone of the seance_type so editing one
     //    does not affect the others.
     const newSeanceTypeIds: string[] = [];
     for (let i = 0; i < dates.length; i++) {
-      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
-              const data = _d; const error = _e;
-        .insert({
+      let data: any[] = [];
+      let error: any = null;
+      try {
+        data = await pb.collection("seance_types").getFullList({});
+      } catch (err: any) {
+        error = err;
+      }
           user_id: user.id,
           pathologie: templateSeance.pathologie,
           objectif_principal: templateSeance.objectif_principal,
@@ -174,8 +184,6 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
           is_shared: false,
           is_copy: true,
         })
-        .select("id")
-        .single();
 
       if (errClone || !cloned) {
         setSaving(false);
@@ -198,10 +206,13 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       ordre: currentMaxOrdre + i + 1,
     }));
 
-    let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .insert(seancesRows)
-      .select("id, seance_type_id, ordre");
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("traitement_seances").getFullList({});
+    } catch (err: any) {
+      error = err;
+    }
     if (errSeances) {
       setSaving(false);
       toast({ title: "Erreur", description: errSeances.message, variant: "destructive" });
@@ -224,9 +235,13 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       user_id: user.id,
     }));
 
-    let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
-            const data = _d; const error = _e;
-      .insert(dateRows);
+    let data: any[] = [];
+    let error: any = null;
+    try {
+      data = await pb.collection("patient_traitement_seance_dates").getFullList({});
+    } catch (err: any) {
+      error = err;
+    }
 
     setSaving(false);
 
