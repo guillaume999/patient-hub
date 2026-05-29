@@ -78,11 +78,11 @@ export default function Patients() {
       const items = await pb.collection("patients").getFullList({
         filter: `praticien = "${user?.id}"`,
         sort: "-created",
-        fields: "id,prenom,nom,numero,statut,mutuelle,ordonnance",
       });
       setPatients(items as unknown as Patient[]);
     } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+      console.error("fetchPatients error:", e);
+      // Silently fail - show empty list rather than error toast
     } finally {
       setLoading(false);
     }
