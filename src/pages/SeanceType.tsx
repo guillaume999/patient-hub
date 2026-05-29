@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Heart, MessageCircle, Trash2, Search, Users, User, Shield, Copy, Plus, Edit, Video, Play, X, ChevronDown, ChevronUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { SeanceFormDialog } from "@/components/seance/SeanceFormDialog";
@@ -155,8 +155,8 @@ export default function SeanceType() {
     setLoading(true);
     try {
       // Fetch user profile
-      const { data: profileData } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("can_share")
         .eq("user_id", user!.id)
         .maybeSingle();
@@ -164,14 +164,14 @@ export default function SeanceType() {
       setUserCanShare(profileData?.can_share !== false);
 
       // Fetch featured seances
-      const { data: featuredData } = await supabase
-        .from("featured_seances")
+      let _d = null, _e = null; try { _d = await pb.collection("featured_seances").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("seance_type_id");
       setFeaturedSeanceIds(featuredData?.map((f) => f.seance_type_id) || []);
 
       // Fetch seance types
-      const { data: seancesData, error: seancesError } = await supabase
-        .from("seance_types")
+      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -180,8 +180,8 @@ export default function SeanceType() {
       // Fetch exercices for each seance with exercice details
       const seancesWithDetails = await Promise.all(
         (seancesData || []).map(async (seance) => {
-          const { data: exercicesData } = await supabase
-            .from("seance_exercices")
+          let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("*")
             .eq("seance_type_id", seance.id)
             .order("ordre");
@@ -190,8 +190,8 @@ export default function SeanceType() {
           const exercicesWithDetails = await Promise.all(
             (exercicesData || []).map(async (ex) => {
               if (ex.exercice_id) {
-                const { data: exerciceDetail } = await supabase
-                  .from("exercices")
+                let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+                        const data = _d; const error = _e;
                   .select("id, title, thumbnail_url, video_url")
                   .eq("id", ex.exercice_id)
                   .maybeSingle();
@@ -201,18 +201,18 @@ export default function SeanceType() {
             })
           );
 
-          const { count: likesCount } = await supabase
-            .from("seance_likes")
+          let _d = null, _e = null; try { _d = await pb.collection("seance_likes").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("*", { count: "exact", head: true })
             .eq("seance_type_id", seance.id);
 
-          const { count: commentsCount } = await supabase
-            .from("seance_comments")
+          let _d = null, _e = null; try { _d = await pb.collection("seance_comments").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("*", { count: "exact", head: true })
             .eq("seance_type_id", seance.id);
 
-          const { data: userLike } = await supabase
-            .from("seance_likes")
+          let _d = null, _e = null; try { _d = await pb.collection("seance_likes").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("id")
             .eq("seance_type_id", seance.id)
             .eq("user_id", user?.id)
@@ -281,8 +281,7 @@ export default function SeanceType() {
       return;
     }
     try {
-      await supabase
-        .from("seance_types")
+      await pb.collection("seance_types").getFullList({});
         .update({ is_shared: !currentlyShared, is_validated: false })
         .eq("id", seanceId);
       
@@ -299,14 +298,12 @@ export default function SeanceType() {
 
     try {
       if (currentlyLiked) {
-        await supabase
-          .from("seance_likes")
+        await pb.collection("seance_likes").getFullList({});
           .delete()
           .eq("seance_type_id", seanceId)
           .eq("user_id", user.id);
       } else {
-        await supabase
-          .from("seance_likes")
+        await pb.collection("seance_likes").getFullList({});
           .insert({ seance_type_id: seanceId, user_id: user.id });
       }
       fetchData();
@@ -318,8 +315,8 @@ export default function SeanceType() {
   const deleteSeance = async (id: string) => {
     try {
       // Delete exercices first
-      await supabase.from("seance_exercices").delete().eq("seance_type_id", id);
-      await supabase.from("seance_types").delete().eq("id", id);
+      await pb.collection("seance_exercices").delete("unknown" /* TODO: fix delete filter */);
+      await pb.collection("seance_types").delete(id);
       toast.success("Séance supprimée");
       fetchData();
     } catch (error) {
@@ -333,15 +330,15 @@ export default function SeanceType() {
 
     try {
       // Fetch user pseudo
-      const { data: profileData } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("pseudo")
         .eq("user_id", user.id)
         .maybeSingle();
 
       // Create the seance copy
-      const { data: newSeance, error: seanceError } = await supabase
-        .from("seance_types")
+      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           pathologie: seance.pathologie,
@@ -363,7 +360,7 @@ export default function SeanceType() {
       // Copy exercices
       if (seance.exercices && seance.exercices.length > 0) {
         for (const ex of seance.exercices) {
-          await supabase.from("seance_exercices").insert({
+          await pb.collection("seance_exercices").create({
             seance_type_id: newSeance.id,
             exercice_id: ex.exercice_id,
             name: ex.name,

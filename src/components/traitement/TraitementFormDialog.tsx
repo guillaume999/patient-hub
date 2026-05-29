@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, X, Trash2, Calendar, GripVertical, ChevronUp, ChevronDown, Search, ChevronRight, Play, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -126,23 +126,23 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     if (!user) return;
 
     // Fetch user pseudo
-    const { data: profileData } = await supabase
-      .from("profiles")
+    let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("pseudo")
       .eq("user_id", user.id)
       .maybeSingle();
     setUserPseudo(profileData?.pseudo || null);
 
     // Fetch pathologies
-    const { data: pathoData } = await supabase
-      .from("pathologies")
+    let _d = null, _e = null; try { _d = await pb.collection("pathologies").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("name")
       .eq("user_id", user.id);
     setAvailablePathologies([...new Set(((pathoData as any[]) ?? []).map((p: any) => p.name as string))]);
 
     // Fetch seances (user's own seances)
-    const { data: seancesData } = await supabase
-      .from("seance_types")
+    let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, code, pathologie, pathologies, objectif_principal, objectifs_principaux")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -155,8 +155,8 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     })) || []);
 
     // Fetch exercices (user's own + platform exercices)
-    const { data: exercicesData } = await supabase
-      .from("exercices")
+    let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, code, title, description, thumbnail_url, pathologie_tags")
       .or(`user_id.eq.${user.id},status.eq.shared`)
       .order("title", { ascending: true });
@@ -179,8 +179,8 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
       if (!seanceExercices[seanceId]) {
         setLoadingSeanceExercices(prev => new Set(prev).add(seanceId));
         
-        const { data } = await supabase
-          .from("seance_exercices")
+        let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("id, name, description, series, repetitions, duration_seconds, exercices:exercice_id(id, title, thumbnail_url)")
           .eq("seance_type_id", seanceId)
           .order("ordre", { ascending: true });
@@ -295,13 +295,13 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
     try {
       // Save new pathologie if needed
       if (newPathologie && !availablePathologies.includes(newPathologie)) {
-        await supabase.from("pathologies").insert({ user_id: user.id, name: newPathologie });
+        await pb.collection("pathologies").create({ user_id: user.id, name: newPathologie });
       }
 
       if (traitement?.id) {
         // Update existing traitement
-        const { error: updateError } = await supabase
-          .from("traitement_types")
+        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .update({
             pathologie: finalPathologie,
             description
@@ -311,11 +311,10 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
         if (updateError) throw updateError;
 
         // Delete old tests
-        await supabase.from("traitement_tests").delete().eq("traitement_type_id", traitement.id);
-
+        await pb.collection("traitement_tests").delete("unknown" /* TODO: fix delete filter */);
         // Insert new tests
         for (const test of tests) {
-          await supabase.from("traitement_tests").insert({
+          await pb.collection("traitement_tests").create({
             traitement_type_id: traitement.id,
             exercice_id: test.exercice_id,
             description: test.exercice?.description || '',
@@ -324,11 +323,10 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
         }
 
         // Delete old seances
-        await supabase.from("traitement_seances").delete().eq("traitement_type_id", traitement.id);
-
+        await pb.collection("traitement_seances").delete("unknown" /* TODO: fix delete filter */);
         // Insert new seances
         for (const seance of selectedSeances) {
-          await supabase.from("traitement_seances").insert({
+          await pb.collection("traitement_seances").create({
             traitement_type_id: traitement.id,
             seance_type_id: seance.seance_type_id,
             ordre: seance.ordre
@@ -338,8 +336,8 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
         toast.success("Traitement modifié avec succès");
       } else {
         // Create new traitement
-        const { data: newTraitement, error: insertError } = await supabase
-          .from("traitement_types")
+        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .insert({
             user_id: user.id,
             pathologie: finalPathologie,
@@ -356,7 +354,7 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
 
         // Insert tests
         for (const test of tests) {
-          await supabase.from("traitement_tests").insert({
+          await pb.collection("traitement_tests").create({
             traitement_type_id: newTraitement.id,
             exercice_id: test.exercice_id,
             description: test.exercice?.description || '',
@@ -366,7 +364,7 @@ export function TraitementFormDialog({ open, onOpenChange, traitement, onSuccess
 
         // Insert seances
         for (const seance of selectedSeances) {
-          await supabase.from("traitement_seances").insert({
+          await pb.collection("traitement_seances").create({
             traitement_type_id: newTraitement.id,
             seance_type_id: seance.seance_type_id,
             ordre: seance.ordre

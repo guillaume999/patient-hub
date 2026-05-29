@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Copy, Loader2, Clock, ExternalLink, Check } from "lucide-react";
@@ -50,8 +50,8 @@ export function GenerateAccessCodeDialog({
       const expires = new Date();
       expires.setHours(expires.getHours() + 4);
 
-      const { error } = await supabase
-        .from("patient_session_access")
+      let _d = null, _e = null; try { _d = await pb.collection("patient_session_access").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           seance_type_id: seanceTypeId,
           patient_id: patientId,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { Layout } from "@/components/layout/Layout";
@@ -8,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, ClipboardList, Loader2, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -57,8 +57,8 @@ export default function PatientBilanIntermediaire() {
   const fetchData = async () => {
     try {
       // Fetch patient name
-      const { data: patient } = await supabase
-        .from("patients")
+      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("name")
         .eq("id", patientId)
         .single();
@@ -69,8 +69,8 @@ export default function PatientBilanIntermediaire() {
 
       // Fetch existing bilan if we have an id
       if (bilanId) {
-        const { data: bilanData } = await supabase
-          .from("patient_bilans")
+        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("*")
           .eq("id", bilanId)
           .single();
@@ -118,8 +118,8 @@ export default function PatientBilanIntermediaire() {
     try {
       if (existingBilanId) {
         // Update existing bilan
-        const { error } = await supabase
-          .from("patient_bilans")
+        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .update({ content: bilanJson })
           .eq("id", existingBilanId);
 
@@ -127,8 +127,8 @@ export default function PatientBilanIntermediaire() {
       } else {
         // Create new bilan with today's date
         const todayDate = format(new Date(), "yyyy-MM-dd");
-        const { data, error } = await supabase
-          .from("patient_bilans")
+        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .insert({
             patient_id: patientId,
             traitement_id: traitementId,

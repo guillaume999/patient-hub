@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ClipboardList, Trash2, Search, Users, User, Shield, Copy, Plus, Edit, Calendar, FileText, X, ChevronDown, ChevronUp, Play, Clock, RotateCcw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { TraitementFormDialog } from "@/components/traitement/TraitementFormDialog";
@@ -177,8 +177,8 @@ export default function TraitementType() {
     setLoading(true);
     try {
       // Fetch user profile
-      const { data: profileData } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("pseudo, can_share")
         .eq("user_id", user!.id)
         .maybeSingle();
@@ -187,22 +187,22 @@ export default function TraitementType() {
       setUserCanShare(profileData?.can_share !== false);
 
       // Fetch featured traitements
-      const { data: featuredData } = await supabase
-        .from("featured_traitements")
+      let _d = null, _e = null; try { _d = await pb.collection("featured_traitements").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("traitement_type_id");
       setFeaturedTraitementIds(featuredData?.map((f) => f.traitement_type_id) || []);
 
       // Fetch traitements
-      const { data: traitementsData, error: traitementsError } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
       if (traitementsError) throw traitementsError;
 
       // Fetch which traitements are used by patients
-      const { data: usedTraitements } = await supabase
-        .from("patient_care_plans")
+      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("active_traitement_id")
         .not("active_traitement_id", "is", null);
 
@@ -213,14 +213,14 @@ export default function TraitementType() {
       // Fetch tests and seances for each traitement
       const traitementsWithDetails = await Promise.all(
         (traitementsData || []).map(async (traitement) => {
-          const { data: testsData } = await supabase
-            .from("traitement_tests")
+          let _d = null, _e = null; try { _d = await pb.collection("traitement_tests").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("*, exercices(id, title, description, thumbnail_url, video_url)")
             .eq("traitement_type_id", traitement.id)
             .order("ordre", { ascending: true });
 
-          const { data: seancesData } = await supabase
-            .from("traitement_seances")
+          let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("*, seance_types(id, pathologie, objectif_principal, pathologies, objectifs_principaux)")
             .eq("traitement_type_id", traitement.id)
             .order("ordre", { ascending: true });
@@ -228,8 +228,8 @@ export default function TraitementType() {
           // Fetch exercices for each seance
           const seancesWithExercices = await Promise.all(
             (seancesData || []).map(async (seance) => {
-              const { data: exercicesData } = await supabase
-                .from("seance_exercices")
+              let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
+                      const data = _d; const error = _e;
                 .select("*, exercices(id, title, description, thumbnail_url, video_url)")
                 .eq("seance_type_id", seance.seance_type_id)
                 .order("ordre", { ascending: true });
@@ -311,8 +311,7 @@ export default function TraitementType() {
       return;
     }
     try {
-      await supabase
-        .from("traitement_types")
+      await pb.collection("traitement_types").getFullList({});
         .update({ is_shared: !currentlyShared, is_validated: false })
         .eq("id", traitementId);
 
@@ -332,11 +331,11 @@ export default function TraitementType() {
     
     try {
       // Delete tests first
-      await supabase.from("traitement_tests").delete().eq("traitement_type_id", id);
+      await pb.collection("traitement_tests").delete("unknown" /* TODO: fix delete filter */);
       // Delete seances
-      await supabase.from("traitement_seances").delete().eq("traitement_type_id", id);
+      await pb.collection("traitement_seances").delete("unknown" /* TODO: fix delete filter */);
       // Delete traitement
-      await supabase.from("traitement_types").delete().eq("id", id);
+      await pb.collection("traitement_types").delete(id);
       toast.success("Traitement supprimé");
       fetchData();
     } catch (error) {
@@ -350,8 +349,8 @@ export default function TraitementType() {
 
     try {
       // Create the traitement copy
-      const { data: newTraitement, error: traitementError } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           pathologie: traitement.pathologie,
@@ -369,7 +368,7 @@ export default function TraitementType() {
       // Copy tests
       if (traitement.tests && traitement.tests.length > 0) {
         for (const test of traitement.tests) {
-          await supabase.from("traitement_tests").insert({
+          await pb.collection("traitement_tests").create({
             traitement_type_id: newTraitement.id,
             description: test.description,
             ordre: test.ordre
@@ -380,7 +379,7 @@ export default function TraitementType() {
       // Copy seances
       if (traitement.seances && traitement.seances.length > 0) {
         for (const seance of traitement.seances) {
-          await supabase.from("traitement_seances").insert({
+          await pb.collection("traitement_seances").create({
             traitement_type_id: newTraitement.id,
             seance_type_id: seance.seance_type_id,
             ordre: seance.ordre

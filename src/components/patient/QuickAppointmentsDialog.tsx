@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarPlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -106,8 +106,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
     setSaving(true);
 
     // 1) Find a template seance_type from existing traitement_seances
-    const { data: existing } = await supabase
-      .from("traitement_seances")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("seance_type_id, ordre")
       .eq("traitement_type_id", traitementId)
       .order("ordre", { ascending: false });
@@ -116,8 +116,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
     const maxTraitementOrdre = existing && existing.length > 0 ? existing[0].ordre : 0;
 
     // Also check existing date rows so we don't collide with the unique (patient_id, traitement_id, seance_ordre) constraint
-    const { data: existingDates } = await supabase
-      .from("patient_traitement_seance_dates")
+    let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("seance_ordre")
       .eq("patient_id", patientId)
       .eq("traitement_id", traitementId)
@@ -138,8 +138,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
     }
 
     // Fetch the template seance_type data + its exercices so we can clone an independent copy per date
-    const { data: templateSeance, error: errTemplate } = await supabase
-      .from("seance_types")
+    let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("pathologie, objectif_principal, pathologies, objectifs_principaux, objectifs_secondaires, comment")
       .eq("id", templateSeanceTypeId)
       .maybeSingle();
@@ -150,8 +150,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       return;
     }
 
-    const { data: templateExercices } = await supabase
-      .from("seance_exercices")
+    let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("exercice_id, name, description, repetitions, duration_seconds, series, force_1, duration_seconds_2, force_2, comment, ordre")
       .eq("seance_type_id", templateSeanceTypeId)
       .order("ordre", { ascending: true });
@@ -160,8 +160,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
     //    does not affect the others.
     const newSeanceTypeIds: string[] = [];
     for (let i = 0; i < dates.length; i++) {
-      const { data: cloned, error: errClone } = await supabase
-        .from("seance_types")
+      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           pathologie: templateSeance.pathologie,
@@ -187,7 +187,7 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
 
       if (templateExercices && templateExercices.length > 0) {
         const exRows = templateExercices.map((ex) => ({ ...ex, seance_type_id: cloned.id }));
-        await supabase.from("seance_exercices").insert(exRows);
+        await pb.collection("seance_exercices").create({});
       }
     }
 
@@ -198,8 +198,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       ordre: currentMaxOrdre + i + 1,
     }));
 
-    const { data: insertedSeances, error: errSeances } = await supabase
-      .from("traitement_seances")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .insert(seancesRows)
       .select("id, seance_type_id, ordre");
     if (errSeances) {
@@ -224,8 +224,8 @@ export function QuickAppointmentsDialog({ open, onOpenChange, patientId, patient
       user_id: user.id,
     }));
 
-    const { error: errDates } = await supabase
-      .from("patient_traitement_seance_dates")
+    let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .insert(dateRows);
 
     setSaving(false);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, MapPin, Save, Plus, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FRENCH_REGIONS } from "@/lib/french-regions";
 
@@ -191,8 +191,8 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
 
   const fetchEntries = async () => {
     try {
-      const { data, error } = await supabase
-        .from("practitioner_directory")
+      let _d = null, _e = null; try { _d = await pb.collection("practitioner_directory").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: true });
@@ -258,10 +258,10 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
 
       let error;
       if (entry.id) {
-        ({ error } = await supabase.from("practitioner_directory").update(payload).eq("id", entry.id));
+        await pb.collection("practitioner_directory").update(entry.id, {});
       } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from("practitioner_directory")
+        let _d = null, _e = null; try { _d = await pb.collection("practitioner_directory").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .insert(payload)
           .select("id")
           .single();
@@ -290,7 +290,7 @@ export function DirectorySettingsCard({ userId }: DirectorySettingsCardProps) {
     const entry = entries[index];
     if (entry.id) {
       setSaving(true);
-      const { error } = await supabase.from("practitioner_directory").delete().eq("id", entry.id);
+      const { error } = await pb.collection("practitioner_directory").delete(entry.id);
       setSaving(false);
       if (error) {
         toast({ title: "Erreur", description: "Impossible de supprimer la fiche", variant: "destructive" });

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, MapPin, ExternalLink, Facebook, Instagram, Linkedin, Globe, Settings, Phone, Mail } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { FRENCH_REGIONS } from "@/lib/french-regions";
 import { useAuth } from "@/lib/auth";
 import { Link } from "react-router-dom";
@@ -47,8 +47,9 @@ export default function Annuaire() {
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["annuaire"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_public_directory");
-      if (error) throw error;
+      const data = await pb.collection("directory_entries").getFullList({
+        expand: "user_id",
+      });
       return (data || []).map((d: any) => ({
         id: d.id,
         user_id: d.user_id,

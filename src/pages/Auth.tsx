@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { pb } from "@/integrations/pocketbase/client";
 import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { z } from "zod";
@@ -80,23 +79,12 @@ export default function Auth() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+      await pb.collection("users").requestPasswordReset(email);
+      toast({
+        title: "Email envoyé",
+        description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe.",
       });
-      
-      if (error) {
-        toast({
-          title: "Erreur",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Email envoyé",
-          description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe.",
-        });
-        setMode("login");
-      }
+      setMode("login");
     } finally {
       setLoading(false);
     }

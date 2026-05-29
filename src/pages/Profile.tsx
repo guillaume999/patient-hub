@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { pb } from "@/integrations/pocketbase/client";
 import { Loader2, User, Mail, Lock, Save, FileText } from "lucide-react";
 import { z } from "zod";
@@ -133,17 +132,11 @@ export default function Profile() {
     setPasswordLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        toast({
-          title: "Erreur",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
+      try {
+        await pb.collection("users").authWithPassword(pb.authStore.record?.email || "", currentPassword);
+        const userId = pb.authStore.record?.id;
+        if (!userId) throw new Error("Non authentifié");
+        await pb.collection("users").update(userId, { password: newPassword, passwordConfirm: newPassword, oldPassword: currentPassword });
         toast({
           title: "Mot de passe modifié",
           description: "Votre mot de passe a été mis à jour avec succès",
@@ -151,6 +144,12 @@ export default function Profile() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+      } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description: err?.message || "Erreur lors du changement de mot de passe",
+          variant: "destructive",
+        });
       }
     } finally {
       setPasswordLoading(false);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/lib/auth";
@@ -7,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -58,8 +58,8 @@ export default function Notes() {
   }, [user]);
 
   const fetchNotes = async () => {
-    const { data, error } = await supabase
-      .from("notes")
+    let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("*")
       .is("patient_id", null)
       .order("updated_at", { ascending: false });
@@ -75,8 +75,8 @@ export default function Notes() {
   const createNote = async () => {
     if (!newTitle.trim() || !user) return;
 
-    const { data, error } = await supabase
-      .from("notes")
+    let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .insert({ title: newTitle.trim(), content: "", user_id: user.id })
       .select()
       .single();
@@ -98,8 +98,8 @@ export default function Notes() {
     if (!selectedNote) return;
     setSaving(true);
 
-    const { error } = await supabase
-      .from("notes")
+    let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .update({ title: editedTitle, content: editedContent })
       .eq("id", selectedNote.id);
 
@@ -118,7 +118,7 @@ export default function Notes() {
   };
 
   const deleteNote = async (id: string) => {
-    const { error } = await supabase.from("notes").delete().eq("id", id);
+    const { error } = await pb.collection("notes").delete(id);
 
     if (error) {
       toast.error("Erreur lors de la suppression");

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,8 +64,8 @@ export function PopupsManagement() {
 
   const fetchPopups = async () => {
     try {
-      const { data, error } = await supabase
-        .from("admin_popups")
+      let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("page_key");
 
@@ -97,8 +97,8 @@ export function PopupsManagement() {
     if (!editingPopup) return;
 
     try {
-      const { error } = await supabase
-        .from("admin_popups")
+      let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           title: formData.title,
           content: formData.content,
@@ -120,8 +120,8 @@ export function PopupsManagement() {
 
   const handleToggleActive = async (popup: Popup) => {
     try {
-      const { error } = await supabase
-        .from("admin_popups")
+      let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ is_active: !popup.is_active })
         .eq("id", popup.id);
 

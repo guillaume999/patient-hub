@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Share2, Trash2, Users, Calendar, UserCheck, Clock, Edit, Eye } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
@@ -59,8 +59,7 @@ export function ShareResourceDialog({
     setLoading(true);
 
     try {
-      let query = supabase
-        .from("resource_shares")
+      pb.collection("resource_shares").getFullList({});
         .select("*")
         .eq("owner_user_id", user.id)
         .eq("resource_type", resourceType);
@@ -78,8 +77,8 @@ export function ShareResourceDialog({
       // Fetch user info for each share
       const sharesWithUsers = await Promise.all(
         (data || []).map(async (share) => {
-          const { data: profileData } = await supabase
-            .from("profiles")
+          let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .select("email, pseudo")
             .eq("user_id", share.shared_with_user_id)
             .maybeSingle();
@@ -131,8 +130,8 @@ export function ShareResourceDialog({
     setSubmitting(true);
     try {
       // Find user by email
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("user_id")
         .eq("email", email.trim().toLowerCase())
         .maybeSingle();
@@ -166,8 +165,8 @@ export function ShareResourceDialog({
         expires_at: getExpirationDate(),
       };
 
-      const { error } = await supabase
-        .from("resource_shares")
+      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .upsert(shareData, {
           onConflict: "owner_user_id,shared_with_user_id,resource_type,resource_id",
         });
@@ -195,8 +194,8 @@ export function ShareResourceDialog({
 
   const handleRemoveShare = async (shareId: string) => {
     try {
-      const { error } = await supabase
-        .from("resource_shares")
+      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", shareId);
 
@@ -220,8 +219,8 @@ export function ShareResourceDialog({
 
   const handleUpdatePermission = async (shareId: string, newPermission: string) => {
     try {
-      const { error } = await supabase
-        .from("resource_shares")
+      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ permission: newPermission })
         .eq("id", shareId);
 

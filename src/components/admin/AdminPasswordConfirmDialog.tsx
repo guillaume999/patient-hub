@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdminPasswordConfirmDialogProps {
@@ -46,13 +46,13 @@ export function AdminPasswordConfirmDialog({
     setLoading(true);
     try {
       // Get current user's email
-      const { data: { user } } = await supabase.auth.getUser();
+      const _authRecord = (pb.authStore as any).record ?? (pb.authStore as any).model; const user = _authRecord;
       if (!user?.email) {
         throw new Error("Utilisateur non connecté");
       }
 
       // Verify password by attempting to sign in
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await pb.collection("users").authWithPassword(
         email: user.email,
         password: password,
       });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Newspaper, Calendar, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
 import { PagePopup } from "@/components/popup/PagePopup";
 
 interface NewsItem {
@@ -43,8 +43,8 @@ export default function News() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const { data, error } = await supabase
-          .from("news")
+        let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("*")
           .order("created_at", { ascending: false });
 

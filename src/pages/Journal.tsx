@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,7 +43,6 @@ import {
   User,
   Filter
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -144,8 +144,8 @@ export default function Journal() {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase
-        .from("user_activity_logs")
+      let _d = null, _e = null; try { _d = await pb.collection("user_activity_logs").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -190,8 +190,8 @@ export default function Journal() {
     setClearing(true);
     
     try {
-      const { error } = await supabase
-        .from("user_activity_logs")
+      let _d = null, _e = null; try { _d = await pb.collection("user_activity_logs").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("user_id", user.id);
 

@@ -4,7 +4,6 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { pb } from "@/integrations/pocketbase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, Printer, Plus, Trash2, X, Copy, Share2, Pencil } from "lucide-react";
@@ -92,8 +91,8 @@ export default function Planning() {
   }, [user, currentDate, viewMode]);
 
   const fetchPatients = async () => {
-    const { data, error } = await supabase
-      .from("patients")
+    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, name, numero, status")
       .neq("status", "inactive")
       .order("name");
@@ -111,8 +110,8 @@ export default function Planning() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("appointments")
+    let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("*")
       .eq("user_id", userId)
       .gte("start_time", weekStart.toISOString())
@@ -127,7 +126,7 @@ export default function Planning() {
         (data || []).map(async (apt) => {
           if (!apt.patient_id) return { ...apt, patient: undefined };
           const patient = patients.find(p => p.id === apt.patient_id) ||
-            (await supabase.from("patients").select("id, name, numero, status").eq("id", apt.patient_id).single()).data;
+            (await { then: async (r: any) => r({ data: await pb.collection("patients").getOne(apt.patient_id).catch(() => null), error: null }), data: null, error: null }).data;
           return { ...apt, patient: patient || undefined };
         })
       );
@@ -172,8 +171,8 @@ export default function Planning() {
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     if (editingAppointmentId) {
-      const { error } = await supabase
-        .from("appointments")
+      let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           patient_id: selectedPatientId,
           start_time: startTime.toISOString(),
@@ -190,7 +189,7 @@ export default function Planning() {
         fetchAppointments();
       }
     } else {
-      const { error } = await supabase.from("appointments").insert({
+      const { error } = await pb.collection("appointments").create({
         user_id: user?.id,
         patient_id: selectedPatientId,
         start_time: startTime.toISOString(),
@@ -210,7 +209,7 @@ export default function Planning() {
   const handleDeleteAppointment = async (appointmentId: string) => {
     if (!confirm("Supprimer ce rendez-vous ?")) return;
     
-    const { error } = await supabase.from("appointments").delete().eq("id", appointmentId);
+    const { error } = await pb.collection("appointments").delete(appointmentId);
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } else {
@@ -259,8 +258,8 @@ export default function Planning() {
         const sourceWeekEnd = endOfWeek(sourceDate, { weekStartsOn: 1 });
         const targetWeekStart = startOfWeek(targetDate, { weekStartsOn: 1 });
         
-        const { data: sourceAppointments, error: fetchError } = await supabase
-          .from("appointments")
+        let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("*")
           .gte("start_time", sourceWeekStart.toISOString())
           .lte("start_time", sourceWeekEnd.toISOString());
@@ -286,7 +285,8 @@ export default function Planning() {
         });
         
         if (appointmentsToDuplicate.length > 0) {
-          const { error } = await supabase.from("appointments").insert(appointmentsToDuplicate);
+          let _data = null, error = null; try { _data = await pb.collection("appointments").create({}); } catch(e: any) { error = e; }
+                  const data = _data;
           if (error) throw error;
         }
         
@@ -298,8 +298,8 @@ export default function Planning() {
         const sourceDayEnd = new Date(sourceDate);
         sourceDayEnd.setHours(23, 59, 59, 999);
         
-        const { data: sourceAppointments, error: fetchError } = await supabase
-          .from("appointments")
+        let _d = null, _e = null; try { _d = await pb.collection("appointments").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("*")
           .gte("start_time", sourceDayStart.toISOString())
           .lte("start_time", sourceDayEnd.toISOString());
@@ -323,7 +323,8 @@ export default function Planning() {
         });
         
         if (appointmentsToDuplicate.length > 0) {
-          const { error } = await supabase.from("appointments").insert(appointmentsToDuplicate);
+          let _data = null, error = null; try { _data = await pb.collection("appointments").create({}); } catch(e: any) { error = e; }
+                  const data = _data;
           if (error) throw error;
         }
         

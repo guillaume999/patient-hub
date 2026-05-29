@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ANNONCE_TYPES, AnnonceType } from "@/lib/french-regions";
 import { 
@@ -66,8 +66,8 @@ export function AnnoncesManagement() {
     setLoading(true);
     try {
       // Fetch all annonces
-      const { data: annoncesData, error: annoncesError } = await supabase
-        .from("annonces")
+      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -75,8 +75,8 @@ export function AnnoncesManagement() {
       setAnnonces((annoncesData as unknown as Annonce[]) || []);
 
       // Fetch settings
-      const { data: settingsData, error: settingsError } = await supabase
-        .from("annonce_settings")
+      let _d = null, _e = null; try { _d = await pb.collection("annonce_settings").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .limit(1)
         .maybeSingle();
@@ -107,8 +107,8 @@ export function AnnoncesManagement() {
 
     setSavingSettings(true);
     try {
-      const { error } = await supabase
-        .from("annonce_settings")
+      let _d = null, _e = null; try { _d = await pb.collection("annonce_settings").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           free_duration_days: formFreeDays,
           featured_price_cents: formFeaturedPrice,
@@ -139,8 +139,8 @@ export function AnnoncesManagement() {
 
   const handleToggleFeatured = async (annonce: Annonce) => {
     try {
-      const { error } = await supabase
-        .from("annonces")
+      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ is_featured: !annonce.is_featured })
         .eq("id", annonce.id);
 
@@ -163,8 +163,8 @@ export function AnnoncesManagement() {
 
   const handleToggleActive = async (annonce: Annonce) => {
     try {
-      const { error } = await supabase
-        .from("annonces")
+      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ is_active: !annonce.is_active })
         .eq("id", annonce.id);
 
@@ -187,7 +187,7 @@ export function AnnoncesManagement() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("annonces").delete().eq("id", id);
+      const { error } = await pb.collection("annonces").delete(id);
 
       if (error) throw error;
 

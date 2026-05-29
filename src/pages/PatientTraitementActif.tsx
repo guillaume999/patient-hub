@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, CalendarPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PatientTraitementCard } from "@/components/patient/PatientTraitementCard";
 import { SelectTraitementDialog } from "@/components/patient/SelectTraitementDialog";
@@ -41,8 +41,8 @@ export default function PatientTraitementActif() {
     setLoading(true);
     
     // Fetch patient
-    const { data: patient, error: patientError } = await supabase
-      .from("patients")
+    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("name")
       .eq("id", id)
       .maybeSingle();
@@ -56,8 +56,8 @@ export default function PatientTraitementActif() {
     setPatientName(patient.name);
     
     // Fetch care plan
-    const { data: carePlan } = await supabase
-      .from("patient_care_plans")
+    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, active_traitement_id")
       .eq("patient_id", id)
       .maybeSingle();
@@ -67,8 +67,8 @@ export default function PatientTraitementActif() {
       setActiveTraitementId(carePlan.active_traitement_id);
       
       if (carePlan.active_traitement_id) {
-        const { data: traitement } = await supabase
-          .from("traitement_types")
+        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("pathologie")
           .eq("id", carePlan.active_traitement_id)
           .maybeSingle();
@@ -86,13 +86,12 @@ export default function PatientTraitementActif() {
     if (!user || !id) return;
     
     // Set the treatment visibility to hidden by default when assigned to a patient
-    await supabase
-      .from("traitement_types")
+    await pb.collection("traitement_types").getFullList({});
       .update({ is_hidden_from_list: true })
       .eq("id", traitementId);
     
-    const { data: traitement } = await supabase
-      .from("traitement_types")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("pathologie")
       .eq("id", traitementId)
       .maybeSingle();
@@ -103,13 +102,12 @@ export default function PatientTraitementActif() {
 
     // Auto-save the care plan with the new treatment
     if (carePlanId) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: traitementId })
         .eq("id", carePlanId);
     } else {
-      const { data: newPlan } = await supabase
-        .from("patient_care_plans")
+      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           patient_id: id,
           user_id: user.id,
@@ -135,8 +133,8 @@ export default function PatientTraitementActif() {
   const handleCreateTraitementSuccess = async () => {
     if (!user) return;
     
-    const { data: latestTraitement } = await supabase
-      .from("traitement_types")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, pathologie")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -153,8 +151,7 @@ export default function PatientTraitementActif() {
     setActiveTraitementName(null);
     
     if (carePlanId) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: null })
         .eq("id", carePlanId);
       toast({ title: "Traitement retiré" });

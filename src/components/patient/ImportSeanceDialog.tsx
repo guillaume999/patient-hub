@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Loader2, Search, ChevronDown, ChevronRight, Play } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -63,8 +63,8 @@ export function ImportSeanceDialog({
 
   const fetchSeances = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("seance_types")
+    let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, pathologie, pathologies, objectif_principal, objectifs_principaux, author_name, is_shared, is_validated, user_id")
       .order("created_at", { ascending: false });
 
@@ -79,8 +79,8 @@ export function ImportSeanceDialog({
     
     setLoadingExercices(prev => new Set(prev).add(seanceId));
     
-    const { data, error } = await supabase
-      .from("seance_exercices")
+    let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select(`
         id,
         ordre,

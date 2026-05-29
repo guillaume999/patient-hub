@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
@@ -69,8 +69,8 @@ export default function PatientCertificats() {
 
   const fetchPatientAndCertificats = async () => {
     try {
-      const { data: patient } = await supabase
-        .from("patients")
+      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("name")
         .eq("id", patientId)
         .single();
@@ -79,8 +79,8 @@ export default function PatientCertificats() {
         setPatientName(patient.name);
       }
 
-      const { data: notes, error } = await supabase
-        .from("notes")
+      let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("patient_id", patientId)
         .order("created_at", { ascending: false });
@@ -105,8 +105,8 @@ export default function PatientCertificats() {
 
   const fetchModels = async () => {
     try {
-      const { data, error } = await supabase
-        .from("certificat_models")
+      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("is_platform", { ascending: false })
         .order("title");
@@ -122,8 +122,8 @@ export default function PatientCertificats() {
     if (!newTitle.trim() || !user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("notes")
+      let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           title: newTitle,
           content: newContent,
@@ -155,7 +155,7 @@ export default function PatientCertificats() {
 
   const handleDeleteCertificat = async (id: string) => {
     try {
-      const { error } = await supabase.from("notes").delete().eq("id", id);
+      const { error } = await pb.collection("notes").delete(id);
 
       if (error) throw error;
 
@@ -183,8 +183,8 @@ export default function PatientCertificats() {
     if (!editingId || !editTitle.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from("notes")
+      let _d = null, _e = null; try { _d = await pb.collection("notes").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           title: editTitle,
           content: editContent,
@@ -220,7 +220,7 @@ export default function PatientCertificats() {
     if (!user) return;
 
     try {
-      const { error } = await supabase.from("certificat_models").insert({
+      const { error } = await pb.collection("certificat_models").create({
         user_id: user.id,
         title: certificat.title,
         content: certificat.content,

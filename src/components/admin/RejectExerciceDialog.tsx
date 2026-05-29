@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { XCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface RejectExerciceDialogProps {
@@ -46,8 +46,8 @@ export function RejectExerciceDialog({
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ 
           status: "rejected",
           rejection_reason: rejectionReason.trim()

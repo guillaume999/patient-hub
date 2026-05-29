@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Save, Trash2, User, Copy, History, Printer, Share2, ClipboardList, ChevronRight } from "lucide-react";
 import { ShareResourceDialog } from "@/components/sharing/ShareResourceDialog";
@@ -123,8 +123,8 @@ export default function PatientDetail() {
   }, [user, id]);
 
   const fetchPatient = async () => {
-    const { data, error } = await supabase
-      .from("patients")
+    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("*")
       .eq("id", id)
       .maybeSingle();
@@ -143,8 +143,8 @@ export default function PatientDetail() {
   };
 
   const fetchCarePlan = async () => {
-    const { data, error } = await supabase
-      .from("patient_care_plans")
+    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("*, bilan_initial_data")
       .eq("patient_id", id)
       .maybeSingle();
@@ -174,8 +174,8 @@ export default function PatientDetail() {
       }
       
       if (data.active_traitement_id) {
-        const { data: traitement } = await supabase
-          .from("traitement_types")
+        let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("pathologie")
           .eq("id", data.active_traitement_id)
           .maybeSingle();
@@ -185,8 +185,8 @@ export default function PatientDetail() {
         }
 
         // Fetch seances of the treatment with their dates
-        const { data: traitementSeancesData } = await supabase
-          .from("traitement_seances")
+        let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select(`
             ordre,
             seance_type_id,
@@ -200,8 +200,8 @@ export default function PatientDetail() {
           .order("ordre", { ascending: true });
 
         // Fetch seance dates for this patient and treatment
-        const { data: seanceDatesData } = await supabase
-          .from("patient_traitement_seance_dates")
+        let _d = null, _e = null; try { _d = await pb.collection("patient_traitement_seance_dates").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("seance_ordre, seance_date")
           .eq("patient_id", id)
           .eq("traitement_id", data.active_traitement_id);
@@ -223,8 +223,8 @@ export default function PatientDetail() {
         }
 
         // Fetch bilans intermediaires
-        const { data: bilansData } = await supabase
-          .from("patient_bilans")
+        let _d = null, _e = null; try { _d = await pb.collection("patient_bilans").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("id, position_after_seance, bilan_date, content")
           .eq("patient_id", id)
           .eq("traitement_id", data.active_traitement_id)
@@ -252,8 +252,8 @@ export default function PatientDetail() {
     setSaving(true);
     
     // Save patient data
-    const { error: patientError } = await supabase
-      .from("patients")
+    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .update({
         name: formData.name,
         status: formData.status,
@@ -277,8 +277,7 @@ export default function PatientDetail() {
 
     // Save or update care plan
     if (carePlan.id) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({
           comments: carePlan.comments,
           motif_consultation: carePlan.motif_consultation,
@@ -290,8 +289,8 @@ export default function PatientDetail() {
         })
         .eq("id", carePlan.id);
     } else {
-      const { data: newPlan } = await supabase
-        .from("patient_care_plans")
+      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           patient_id: id,
           user_id: user.id,
@@ -319,7 +318,7 @@ export default function PatientDetail() {
   const handleDelete = async () => {
     if (!id) return;
     
-    const { error } = await supabase.from("patients").delete().eq("id", id);
+    const { error } = await pb.collection("patients").delete(id);
     
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -335,8 +334,8 @@ export default function PatientDetail() {
 
     try {
       // Create new patient with same data (except numero)
-      const { data: newPatient, error: patientError } = await supabase
-        .from("patients")
+      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           name: `${patient.name} (copie)`,
@@ -360,7 +359,7 @@ export default function PatientDetail() {
 
       // Copy care plan if options selected
       if (duplicateOptions.keepComments || duplicateOptions.keepObjectives || duplicateOptions.keepTraitement) {
-        await supabase.from("patient_care_plans").insert({
+        await pb.collection("patient_care_plans").create({
           patient_id: newPatient.id,
           user_id: user.id,
           comments: duplicateOptions.keepComments ? carePlan.comments : "",
@@ -390,8 +389,7 @@ export default function PatientDetail() {
     if (!id || !user) return;
     
     // Save patient data
-    await supabase
-      .from("patients")
+    await pb.collection("patients").getFullList({});
       .update({
         name: formData.name,
         status: formData.status,
@@ -409,8 +407,7 @@ export default function PatientDetail() {
 
     // Save or update care plan
     if (carePlan.id) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({
           comments: carePlan.comments,
           motif_consultation: carePlan.motif_consultation,
@@ -422,8 +419,8 @@ export default function PatientDetail() {
         })
         .eq("id", carePlan.id);
     } else {
-      const { data: newPlan } = await supabase
-        .from("patient_care_plans")
+      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           patient_id: id,
           user_id: user.id,
@@ -449,13 +446,12 @@ export default function PatientDetail() {
     setCarePlan(newCarePlan);
     
     // Set the treatment visibility to hidden by default when assigned to a patient
-    await supabase
-      .from("traitement_types")
+    await pb.collection("traitement_types").getFullList({});
       .update({ is_hidden_from_list: true })
       .eq("id", traitementId);
     
-    const { data: traitement } = await supabase
-      .from("traitement_types")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("pathologie")
       .eq("id", traitementId)
       .maybeSingle();
@@ -466,13 +462,12 @@ export default function PatientDetail() {
 
     // Auto-save the care plan with the new treatment
     if (newCarePlan.id) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: traitementId })
         .eq("id", newCarePlan.id);
     } else if (user && id) {
-      const { data: newPlan } = await supabase
-        .from("patient_care_plans")
+      let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           patient_id: id,
           user_id: user.id,
@@ -503,8 +498,8 @@ export default function PatientDetail() {
     // Fetch the latest traitement created by this user to set as active
     if (!user) return;
     
-    const { data: latestTraitement } = await supabase
-      .from("traitement_types")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, pathologie")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -523,8 +518,7 @@ export default function PatientDetail() {
     
     // Auto-save the removal
     if (carePlan.id) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({ active_traitement_id: null })
         .eq("id", carePlan.id);
       toast({ title: "Traitement retiré" });

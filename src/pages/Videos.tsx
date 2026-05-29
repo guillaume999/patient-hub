@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Trash2, Edit, Play, Upload, Loader2, Video } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { PagePopup } from "@/components/popup/PagePopup";
@@ -66,8 +66,8 @@ export default function Videos() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("videos")
+      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -192,8 +192,8 @@ export default function Videos() {
       
       const objectName = `${user.id}/thumbnails/${Date.now()}.jpg`;
       
-      const { error: uploadError } = await supabase.storage
-        .from("exercice-videos")
+      let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .upload(objectName, blob, {
           cacheControl: "3600",
           contentType: "image/jpeg",
@@ -205,7 +205,8 @@ export default function Videos() {
         return null;
       }
 
-      const { data } = supabase.storage.from("exercice-videos").getPublicUrl(objectName);
+      let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
       return data.publicUrl;
     } catch (error) {
       console.error("Error uploading thumbnail:", error);
@@ -231,8 +232,8 @@ export default function Videos() {
     const objectName = `${user.id}/${Date.now()}.${fileExt}`;
 
     // Use standard upload instead of TUS for simplicity
-    const { error: uploadError } = await supabase.storage
-      .from("exercice-videos")
+    let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .upload(objectName, videoFile, {
         cacheControl: "3600",
         upsert: false,
@@ -243,7 +244,8 @@ export default function Videos() {
       throw uploadError;
     }
 
-    const { data } = supabase.storage.from("exercice-videos").getPublicUrl(objectName);
+    let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
     return data.publicUrl;
   };
 
@@ -277,8 +279,8 @@ export default function Videos() {
       const videoUrl = await uploadVideoToStorage(formVideoFile);
       setUploadProgress(80);
 
-      const { error } = await supabase
-        .from("videos")
+      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           title: formTitle.trim(),
@@ -342,8 +344,8 @@ export default function Videos() {
         setUploadProgress(80);
       }
 
-      const { error } = await supabase
-        .from("videos")
+      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           title: formTitle.trim(),
           video_url: videoUrl,
@@ -374,8 +376,7 @@ export default function Videos() {
 
     try {
       // First, remove the video reference from all exercices using it
-      await supabase
-        .from("exercices")
+      await pb.collection("exercices").getFullList({});
         .update({ video_id: null, video_url: null, thumbnail_url: null })
         .eq("video_id", video.id);
 
@@ -383,12 +384,12 @@ export default function Videos() {
       const urlParts = video.video_url.split("/exercice-videos/");
       if (urlParts.length > 1) {
         const objectPath = urlParts[1];
-        await supabase.storage.from("exercice-videos").remove([objectPath]);
+        await pb.collection("UNKNOWN").getFullList({});
       }
 
       // Delete the video record
-      const { error } = await supabase
-        .from("videos")
+      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", video.id);
 

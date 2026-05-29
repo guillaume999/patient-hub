@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,6 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Share2, Search, Users, UserCheck, Clock, Edit, Eye } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import { addDays, addWeeks, addMonths } from "date-fns";
@@ -103,8 +103,8 @@ export function BulkSharePatientsDialog({ patients, trigger }: BulkSharePatients
     setSubmitting(true);
     try {
       // Find user by email
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("user_id")
         .eq("email", email.trim().toLowerCase())
         .maybeSingle();
@@ -141,8 +141,8 @@ export function BulkSharePatientsDialog({ patients, trigger }: BulkSharePatients
         expires_at: expiresAt,
       }));
 
-      const { error } = await supabase
-        .from("resource_shares")
+      let _d = null, _e = null; try { _d = await pb.collection("resource_shares").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .upsert(shares, {
           onConflict: "owner_user_id,shared_with_user_id,resource_type,resource_id",
         });

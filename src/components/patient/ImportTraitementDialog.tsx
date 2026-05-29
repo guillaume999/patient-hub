@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Loader2, Search, ChevronDown, ChevronRight, Play } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -84,8 +84,8 @@ export function ImportTraitementDialog({
 
   const fetchUserPseudo = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("profiles")
+    let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("pseudo")
       .eq("user_id", user.id)
       .maybeSingle();
@@ -94,8 +94,8 @@ export function ImportTraitementDialog({
 
   const fetchTraitements = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("traitement_types")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id, pathologie, description, author_name, is_shared, is_validated, user_id")
       .eq("is_hidden_from_list", false)
       .order("created_at", { ascending: false });
@@ -111,8 +111,8 @@ export function ImportTraitementDialog({
     
     setLoadingSeances(prev => new Set(prev).add(traitementId));
     
-    const { data, error } = await supabase
-      .from("traitement_seances")
+    let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select(`
         id,
         ordre,
@@ -137,8 +137,8 @@ export function ImportTraitementDialog({
     
     setLoadingExercices(prev => new Set(prev).add(seanceId));
     
-    const { data, error } = await supabase
-      .from("seance_exercices")
+    let _d = null, _e = null; try { _d = await pb.collection("seance_exercices").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select(`
         id,
         ordre,
@@ -207,8 +207,8 @@ export function ImportTraitementDialog({
     setCopying(true);
 
     try {
-      const { data: newTraitement, error: traitementError } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           pathologie: traitement.pathologie,
@@ -224,15 +224,15 @@ export function ImportTraitementDialog({
 
       if (traitementError) throw traitementError;
 
-      const { data: testsData } = await supabase
-        .from("traitement_tests")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_tests").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("traitement_type_id", traitement.id)
         .order("ordre", { ascending: true });
 
       if (testsData && testsData.length > 0) {
         for (const test of testsData) {
-          await supabase.from("traitement_tests").insert({
+          await pb.collection("traitement_tests").create({
             traitement_type_id: newTraitement.id,
             description: test.description,
             exercice_id: test.exercice_id,
@@ -241,15 +241,15 @@ export function ImportTraitementDialog({
         }
       }
 
-      const { data: seancesData } = await supabase
-        .from("traitement_seances")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_seances").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("traitement_type_id", traitement.id)
         .order("ordre", { ascending: true });
 
       if (seancesData && seancesData.length > 0) {
         for (const seance of seancesData) {
-          await supabase.from("traitement_seances").insert({
+          await pb.collection("traitement_seances").create({
             traitement_type_id: newTraitement.id,
             seance_type_id: seance.seance_type_id,
             ordre: seance.ordre

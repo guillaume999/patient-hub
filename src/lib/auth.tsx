@@ -1,19 +1,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 
-// Locally-typed Supabase-compatible shapes (we no longer use @supabase/supabase-js).
-// User is now a PocketBase record; Session is a minimal token holder.
 export type User = {
   id: string;
   email?: string;
+  role?: string;
+  name?: string;
   [key: string]: any;
 };
+
 export type Session = {
   access_token: string;
-  refresh_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  expires_at?: number;
   user: User;
 };
 
@@ -28,99 +25,61 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper to clear any stale Supabase auth data from localStorage (legacy cleanup)
-function clearLocalAuthData() {
-  const keysToRemove: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && (key.startsWith('sb-') || key.includes('supabase') || key === 'pocketbase_auth')) {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach(key => localStorage.removeItem(key));
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const model = (pb.authStore as any).record ?? (pb.authStore as any).model;
+    if (pb.authStore.isValid && model) {
+      setUser(model as User);
+      setSession({ access_token: pb.authStore.token, user: model as User });
+    }
+    setLoading(false);
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession }, error }) => {
-      if (error) {
-        // Session is invalid, clear everything
-        clearLocalAuthData();
-        setSession(null);
-        setUser(null);
+    const unsub = pb.authStore.onChange(() => {
+      const m = (pb.authStore as any).record ?? (pb.authStore as any).model;
+      if (pb.authStore.isValid && m) {
+        setUser(m as User);
+        setSession({ access_token: pb.authStore.token, user: m as User });
       } else {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        setUser(null);
+        setSession(null);
       }
-      setLoading(false);
-    });
+    }, false);
 
-    return () => subscription.unsubscribe();
+    return () => { if (typeof unsub === "function") unsub(); };
   }, []);
 
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, pseudo?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          pseudo: pseudo,
-        },
-      },
-    });
-
-    // Update the profile with the pseudo after signup
-    if (!error && data.user && pseudo) {
-      await supabase
-        .from("profiles")
-        .update({ pseudo })
-        .eq("user_id", data.user.id);
+  const signIn = async (email: string, password: string) => {
+    try {
+      await pb.collection("users").authWithPassword(email, password);
+      return { error: null };
+    } catch (e: any) {
+      return { error: e };
     }
-
-    return { error };
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, pseudo?: string) => {
+    try {
+      const name = [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
+      await pb.collection("users").create({
+        email,
+        password,
+        passwordConfirm: password,
+        emailVisibility: true,
+        ...(name ? { name } : {}),
+      });
+      await pb.collection("users").authWithPassword(email, password);
+      return { error: null };
+    } catch (e: any) {
+      return { error: e };
+    }
   };
 
   const signOut = async () => {
-    // Always clear local state first for immediate UI update
-    setSession(null);
-    setUser(null);
-    
-    // Try to sign out from Supabase (ignore errors since session might be invalid)
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // Ignore - we'll force clear anyway
-    }
-    
-    // Force clear all local auth data
-    clearLocalAuthData();
+    pb.authStore.clear();
   };
 
   return (
@@ -132,8 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 }

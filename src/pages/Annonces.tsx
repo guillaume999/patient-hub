@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { FRENCH_REGIONS, ANNONCE_TYPES, AnnonceType } from "@/lib/french-regions";
@@ -106,8 +106,8 @@ export default function Annonces() {
     setLoading(true);
     try {
       // Fetch settings
-      const { data: settingsData } = await supabase
-        .from("annonce_settings")
+      let _d = null, _e = null; try { _d = await pb.collection("annonce_settings").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("free_duration_days")
         .limit(1)
         .maybeSingle();
@@ -117,8 +117,8 @@ export default function Annonces() {
       }
 
       // Fetch all active annonces
-      const { data: annoncesData, error: annoncesError } = await supabase
-        .from("annonces")
+      let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("is_active", true)
         .gt("expires_at", new Date().toISOString())
@@ -130,8 +130,8 @@ export default function Annonces() {
 
       // Fetch my annonces if logged in
       if (user) {
-        const { data: myData } = await supabase
-          .from("annonces")
+        let _d = null, _e = null; try { _d = await pb.collection("annonces").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
@@ -183,7 +183,7 @@ export default function Annonces() {
     try {
       const expiresAt = addDays(new Date(), settings.free_duration_days);
 
-      const { error } = await supabase.from("annonces").insert({
+      const { error } = await pb.collection("annonces").create({
         user_id: user.id,
         title: formTitle.trim(),
         description: formDescription.trim(),
@@ -219,7 +219,7 @@ export default function Annonces() {
 
   const handleDeleteAnnonce = async (id: string) => {
     try {
-      const { error } = await supabase.from("annonces").delete().eq("id", id);
+      const { error } = await pb.collection("annonces").delete(id);
       if (error) throw error;
 
       toast({ title: "Annonce supprimée" });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, Users, User, Shield, Copy, Trash2, Edit, Play, X, Check, Upload, Loader2, Video, Library } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { toast } from "sonner";
@@ -171,8 +171,8 @@ export default function Exercices() {
     setLoading(true);
     try {
       // Fetch user profile
-      const { data: profileData } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("pseudo, can_share")
         .eq("user_id", user!.id)
         .maybeSingle();
@@ -181,14 +181,14 @@ export default function Exercices() {
       setUserCanShare(profileData?.can_share !== false);
 
       // Fetch featured exercices
-      const { data: featuredData } = await supabase
-        .from("featured_exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("featured_exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("exercice_id");
       setFeaturedExerciceIds(featuredData?.map((f) => f.exercice_id) || []);
 
       // Fetch exercices
-      const { data: exercicesData, error: exercicesError } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -196,8 +196,8 @@ export default function Exercices() {
       setExercices(exercicesData || []);
 
       // Fetch pathologies
-      const { data: pathoData } = await supabase
-        .from("pathologies")
+      let _d = null, _e = null; try { _d = await pb.collection("pathologies").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("name");
       setPathologies([...new Set(((pathoData as any[]) ?? []).map((p: any) => p.name as string))]);
     } catch (error) {
@@ -227,8 +227,8 @@ export default function Exercices() {
     const objectName = `${user.id}/${Date.now()}.${fileExt}`;
 
     // Use standard upload instead of TUS for reliability
-    const { error: uploadError } = await supabase.storage
-      .from("exercice-videos")
+    let _d = null, _e = null; try { _d = await pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .upload(objectName, videoFile, {
         cacheControl: "3600",
         upsert: false,
@@ -239,7 +239,8 @@ export default function Exercices() {
       throw uploadError;
     }
 
-    const { data } = supabase.storage.from("exercice-videos").getPublicUrl(objectName);
+    let _d = null, _e = null; try { _d = pb.collection("UNKNOWN").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
     return { publicUrl: data.publicUrl, objectName };
   };
 
@@ -256,7 +257,7 @@ export default function Exercices() {
       const tags = [...formData.pathologie_tags];
       if (formData.newPathologie.trim() && !tags.includes(formData.newPathologie.trim())) {
         tags.push(formData.newPathologie.trim());
-        await supabase.from("pathologies").insert({ 
+        await pb.collection("pathologies").create({ 
           user_id: user.id, 
           name: formData.newPathologie.trim() 
         });
@@ -273,8 +274,8 @@ export default function Exercices() {
         thumbnailUrl = "";
         
         // Also add to video library
-        const { data: videoData, error: videoError } = await supabase
-          .from("videos")
+        let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .insert({
             user_id: user.id,
             title: formData.title.trim() || formData.videoFile.name,
@@ -292,8 +293,8 @@ export default function Exercices() {
         }
       }
 
-      const { error } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           title: formData.title.trim(),
@@ -333,7 +334,7 @@ export default function Exercices() {
       const tags = [...formData.pathologie_tags];
       if (formData.newPathologie.trim() && !tags.includes(formData.newPathologie.trim())) {
         tags.push(formData.newPathologie.trim());
-        await supabase.from("pathologies").insert({ 
+        await pb.collection("pathologies").create({ 
           user_id: user.id, 
           name: formData.newPathologie.trim() 
         });
@@ -350,8 +351,8 @@ export default function Exercices() {
         thumbnailUrl = "";
         
         // Also add to video library
-        const { data: videoData, error: videoError } = await supabase
-          .from("videos")
+        let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .insert({
             user_id: user.id,
             title: formData.title.trim() || formData.videoFile.name,
@@ -369,8 +370,8 @@ export default function Exercices() {
         }
       }
 
-      const { error } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           title: formData.title.trim(),
           description: formData.description.trim() || null,
@@ -440,8 +441,8 @@ export default function Exercices() {
       // Toggle between draft and pending status
       if (exercice.status === "pending") {
         // Cancel the pending share - revert to draft
-        const { error } = await supabase
-          .from("exercices")
+        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .update({ status: "draft" })
           .eq("id", exercice.id);
 
@@ -449,8 +450,8 @@ export default function Exercices() {
         toast.success("Demande de partage annulée");
       } else if (exercice.status === "draft") {
         // Submit for sharing - change to pending
-        const { error } = await supabase
-          .from("exercices")
+        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .update({ status: "pending" })
           .eq("id", exercice.id);
 
@@ -458,8 +459,8 @@ export default function Exercices() {
         toast.success("Exercice soumis pour validation");
       } else if (exercice.status === "shared") {
         // Already shared - revert to draft (unshare)
-        const { error } = await supabase
-          .from("exercices")
+        let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .update({ status: "draft" })
           .eq("id", exercice.id);
 
@@ -476,8 +477,7 @@ export default function Exercices() {
 
   const validateExercice = async (exercice: Exercice) => {
     try {
-      await supabase
-        .from("exercices")
+      await pb.collection("exercices").getFullList({});
         .update({ status: "shared" })
         .eq("id", exercice.id);
       
@@ -494,8 +494,8 @@ export default function Exercices() {
 
     try {
       // Create a copy for platform
-      const { data: newExercice, error: copyError } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           title: exercice.title,
@@ -515,8 +515,7 @@ export default function Exercices() {
       if (copyError) throw copyError;
 
       // Add to featured
-      await supabase
-        .from("featured_exercices")
+      await pb.collection("featured_exercices").getFullList({});
         .insert({
           exercice_id: newExercice.id,
           added_by: user.id
@@ -532,8 +531,7 @@ export default function Exercices() {
 
   const removeFromPlatform = async (exerciceId: string) => {
     try {
-      await supabase
-        .from("featured_exercices")
+      await pb.collection("featured_exercices").getFullList({});
         .delete()
         .eq("exercice_id", exerciceId);
 
@@ -549,8 +547,8 @@ export default function Exercices() {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           title: exercice.title,
@@ -582,14 +580,13 @@ export default function Exercices() {
       
       if (isOnPlatform || isSharedOrPending) {
         // Soft delete - mark as deleted by author
-        await supabase
-          .from("exercices")
+        await pb.collection("exercices").getFullList({});
           .update({ deleted_by_author: true })
           .eq("id", exercice.id);
         toast.success("Exercice retiré de votre bibliothèque");
       } else {
         // Hard delete for draft exercises
-        await supabase.from("exercices").delete().eq("id", exercice.id);
+        await pb.collection("exercices").delete(exercice.id);
         toast.success("Exercice supprimé");
       }
       fetchData();
@@ -1185,8 +1182,8 @@ function ExerciceForm({ formData, setFormData, pathologies, toggleTag, onSubmit,
   const fetchLibraryVideos = async () => {
     setLibraryLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("videos")
+      let _d = null, _e = null; try { _d = await pb.collection("videos").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("id, title, video_url, thumbnail_url")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });

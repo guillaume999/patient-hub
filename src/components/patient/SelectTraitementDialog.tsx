@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Plus, ClipboardList, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 interface Traitement {
@@ -55,16 +55,16 @@ export function SelectTraitementDialog({
 
     try {
       // Fetch personal traitements (not hidden from list)
-      const { data: personal } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("id, pathologie, description, author_name, is_shared")
         .eq("user_id", user.id)
         .eq("is_hidden_from_list", false)
         .order("created_at", { ascending: false });
 
       // Fetch shared/platform traitements (validated and not user's own)
-      const { data: platform } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("id, pathologie, description, author_name, is_shared")
         .eq("is_shared", true)
         .eq("is_validated", true)
@@ -75,8 +75,8 @@ export function SelectTraitementDialog({
       const personalWithCounts = await Promise.all(
         (personal || []).map(async (t) => {
           const [{ count: seancesCount }, { count: testsCount }] = await Promise.all([
-            supabase.from("traitement_seances").select("*", { count: "exact", head: true }).eq("traitement_type_id", t.id),
-            supabase.from("traitement_tests").select("*", { count: "exact", head: true }).eq("traitement_type_id", t.id),
+            pb.collection("traitement_seances").getFullList({filter: `traitement_type = "${t.id}"`});
+            pb.collection("traitement_tests").getFullList({filter: `traitement_type = "${t.id}"`});
           ]);
           return { ...t, seances_count: seancesCount || 0, tests_count: testsCount || 0 };
         })
@@ -86,8 +86,8 @@ export function SelectTraitementDialog({
       const platformWithCounts = await Promise.all(
         (platform || []).map(async (t) => {
           const [{ count: seancesCount }, { count: testsCount }] = await Promise.all([
-            supabase.from("traitement_seances").select("*", { count: "exact", head: true }).eq("traitement_type_id", t.id),
-            supabase.from("traitement_tests").select("*", { count: "exact", head: true }).eq("traitement_type_id", t.id),
+            pb.collection("traitement_seances").getFullList({filter: `traitement_type = "${t.id}"`});
+            pb.collection("traitement_tests").getFullList({filter: `traitement_type = "${t.id}"`});
           ]);
           return { ...t, seances_count: seancesCount || 0, tests_count: testsCount || 0 };
         })

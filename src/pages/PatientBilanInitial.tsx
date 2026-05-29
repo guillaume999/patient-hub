@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Save, ClipboardList, User, Activity, Eye, Stethoscope, MessageSquare, Printer, Plus, Trash2, BookOpen } from "lucide-react";
 
@@ -143,8 +143,8 @@ export default function PatientBilanInitial() {
   }, [user, id]);
 
   const fetchPatientData = async () => {
-    const { data: patient } = await supabase
-      .from("patients")
+    let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("name")
       .eq("id", id)
       .maybeSingle();
@@ -153,8 +153,8 @@ export default function PatientBilanInitial() {
       setPatientName(patient.name);
     }
 
-    const { data: carePlan } = await supabase
-      .from("patient_care_plans")
+    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("bilan_initial_data")
       .eq("patient_id", id)
       .maybeSingle();
@@ -179,20 +179,18 @@ export default function PatientBilanInitial() {
 
     const bilanJson = JSON.stringify(bilan);
 
-    const { data: existingPlan } = await supabase
-      .from("patient_care_plans")
+    let _d = null, _e = null; try { _d = await pb.collection("patient_care_plans").getFullList({}); } catch(e: any) { _e = e; }
+            const data = _d; const error = _e;
       .select("id")
       .eq("patient_id", id)
       .maybeSingle();
 
     if (existingPlan) {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .update({ bilan_initial_data: bilanJson })
         .eq("id", existingPlan.id);
     } else {
-      await supabase
-        .from("patient_care_plans")
+      await pb.collection("patient_care_plans").getFullList({});
         .insert({
           patient_id: id,
           user_id: user.id,

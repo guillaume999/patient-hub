@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 import { useAuth } from "@/lib/auth";
 
 interface Popup {
@@ -25,8 +25,8 @@ export function usePagePopup(pageKey: string) {
 
       try {
         // Fetch the popup for this page
-        const { data: popupData, error: popupError } = await supabase
-          .from("admin_popups")
+        let _d = null, _e = null; try { _d = await pb.collection("admin_popups").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("*")
           .eq("page_key", pageKey)
           .eq("is_active", true)
@@ -47,8 +47,8 @@ export function usePagePopup(pageKey: string) {
         setPopup(popupData);
 
         // Check if user has dismissed this popup
-        const { data: dismissedData, error: dismissedError } = await supabase
-          .from("user_dismissed_popups")
+        let _d = null, _e = null; try { _d = await pb.collection("user_dismissed_popups").getFullList({}); } catch(e: any) { _e = e; }
+                const data = _d; const error = _e;
           .select("id")
           .eq("popup_id", popupData.id)
           .eq("user_id", user.id)
@@ -74,7 +74,7 @@ export function usePagePopup(pageKey: string) {
 
     if (dontShowAgain) {
       try {
-        await supabase.from("user_dismissed_popups").insert({
+        await pb.collection("user_dismissed_popups").create({
           user_id: user.id,
           popup_id: popup.id,
         });

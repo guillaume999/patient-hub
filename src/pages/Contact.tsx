@@ -1,11 +1,11 @@
 import { useState } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Send, MapPin, Phone, Loader2 } from "lucide-react";
 
@@ -17,7 +17,8 @@ export default function Contact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.from("contact_messages").insert(form);
+    let _data = null, error = null; try { _data = await pb.collection("contact_messages").create({}); } catch(e: any) { error = e; }
+            const data = _data;
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
     else { toast({ title: "Message envoyé !" }); setForm({ name: "", email: "", subject: "", message: "" }); }
     setLoading(false);

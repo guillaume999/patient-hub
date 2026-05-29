@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth";
 import { useAdmin } from "@/hooks/useAdmin";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AdminPasswordConfirmDialog } from "@/components/admin/AdminPasswordConfirmDialog";
 import { ExerciceDetailDialog } from "@/components/admin/ExerciceDetailDialog";
@@ -223,8 +223,8 @@ export default function Admin() {
     try {
       // Fetch users - explicitly select only non-sensitive fields
       // SECURITY: Never select stripe_customer_id or stripe_subscription_id
-      const { data: usersData, error: usersError } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("user_id, email, first_name, last_name, pseudo, trial_end_date, is_premium, is_banned, can_share, created_at, subscription_tier, subscription_end_date, has_stripe_account")
         .order("created_at", { ascending: false });
 
@@ -232,16 +232,16 @@ export default function Admin() {
       setUsers(usersData || []);
 
       // Fetch admin roles
-      const { data: adminRolesData } = await supabase
-        .from("user_roles")
+      let _d = null, _e = null; try { _d = await pb.collection("user_roles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("user_id")
         .eq("role", "admin");
       
       setAdminUserIds(new Set(adminRolesData?.map(r => r.user_id) || []));
 
       // Fetch seances
-      const { data: seancesData, error: seancesError } = await supabase
-        .from("seance_types")
+      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -249,8 +249,8 @@ export default function Admin() {
       setSeances(seancesData || []);
 
       // Fetch traitements
-      const { data: traitementsData, error: traitementsError } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -258,8 +258,8 @@ export default function Admin() {
       setTraitements(traitementsData || []);
 
       // Fetch exercices
-      const { data: exercicesData, error: exercicesError } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -267,23 +267,23 @@ export default function Admin() {
       setExercices(exercicesData || []);
 
       // Fetch featured exercices
-      const { data: featuredData } = await supabase
-        .from("featured_exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("featured_exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("exercice_id");
       
       setFeaturedExerciceIds(new Set(featuredData?.map(f => f.exercice_id) || []));
 
       // Fetch consulted exercices for current admin
-      const { data: consultedData } = await supabase
-        .from("exercice_consultations")
+      let _d = null, _e = null; try { _d = await pb.collection("exercice_consultations").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("exercice_id")
         .eq("is_consulted", true);
       
       setConsultedExerciceIds(new Set(consultedData?.map(c => c.exercice_id) || []));
 
       // Fetch platform certificat models
-      const { data: modelsData } = await supabase
-        .from("certificat_models")
+      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("is_platform", true)
         .order("created_at", { ascending: false });
@@ -291,8 +291,8 @@ export default function Admin() {
       setCertificatModels(modelsData || []);
 
       // Fetch subscription limits
-      const { data: limitsData } = await supabase
-        .from("subscription_limits")
+      let _d = null, _e = null; try { _d = await pb.collection("subscription_limits").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("tier");
       
@@ -312,8 +312,8 @@ export default function Admin() {
       const pendingExercicesCount = exercicesData?.filter(e => e.status === 'pending').length || 0;
 
       // Fetch patients count
-      const { count: patientsCount } = await supabase
-        .from("patients")
+      let _d = null, _e = null; try { _d = await pb.collection("patients").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*", { count: "exact", head: true });
 
       setStats({
@@ -343,8 +343,8 @@ export default function Admin() {
 
   const updateSubscriptionTier = async (userId: string, newTier: "free" | "basic" | "premium") => {
     try {
-      const { error } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ 
           subscription_tier: newTier,
           is_premium: newTier !== "free",
@@ -374,8 +374,8 @@ export default function Admin() {
 
   const updateSubscriptionEndDate = async (userId: string, newDate: string | null) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ 
           subscription_end_date: newDate ? new Date(newDate).toISOString() : null,
         })
@@ -403,8 +403,8 @@ export default function Admin() {
 
   const toggleBan = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ is_banned: !currentStatus })
         .eq("user_id", userId);
 
@@ -430,8 +430,8 @@ export default function Admin() {
 
   const toggleCanShare = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
+      let _d = null, _e = null; try { _d = await pb.collection("profiles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ can_share: !currentStatus })
         .eq("user_id", userId);
 
@@ -457,8 +457,8 @@ export default function Admin() {
 
   const openAdminConfirmDialog = async (userId: string, userEmail: string | null) => {
     try {
-      const { data: existingRole } = await supabase
-        .from("user_roles")
+      let _d = null, _e = null; try { _d = await pb.collection("user_roles").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .eq("user_id", userId)
         .eq("role", "admin")
@@ -488,16 +488,14 @@ export default function Admin() {
     
     try {
       if (action === "remove") {
-        await supabase
-          .from("user_roles")
+        await pb.collection("user_roles").getFullList({});
           .delete()
           .eq("user_id", userId)
           .eq("role", "admin");
         
         toast({ title: "Rôle admin retiré" });
       } else {
-        await supabase
-          .from("user_roles")
+        await pb.collection("user_roles").getFullList({});
           .insert({ user_id: userId, role: "admin" });
         
         toast({ title: "Rôle admin ajouté" });
@@ -530,8 +528,8 @@ export default function Admin() {
       for (const limit of subscriptionLimits) {
         const edits = editingLimits[limit.tier];
         if (edits && Object.keys(edits).length > 0) {
-          const { error } = await supabase
-            .from("subscription_limits")
+          let _d = null, _e = null; try { _d = await pb.collection("subscription_limits").getFullList({}); } catch(e: any) { _e = e; }
+                  const data = _d; const error = _e;
             .update(edits)
             .eq("id", limit.id);
           
@@ -573,8 +571,8 @@ export default function Admin() {
 
   const toggleTraitementValidation = async (traitementId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ is_validated: !currentStatus })
         .eq("id", traitementId);
 
@@ -602,8 +600,8 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette séance ?")) return;
 
     try {
-      const { error } = await supabase
-        .from("seance_types")
+      let _d = null, _e = null; try { _d = await pb.collection("seance_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", seanceId);
 
@@ -625,8 +623,8 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce traitement ?")) return;
 
     try {
-      const { error } = await supabase
-        .from("traitement_types")
+      let _d = null, _e = null; try { _d = await pb.collection("traitement_types").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", traitementId);
 
@@ -647,8 +645,8 @@ export default function Admin() {
   const toggleExerciceValidation = async (exerciceId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'shared' ? 'pending' : 'shared';
     try {
-      const { error } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({ status: newStatus })
         .eq("id", exerciceId);
 
@@ -676,8 +674,8 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet exercice ?")) return;
 
     try {
-      const { error } = await supabase
-        .from("exercices")
+      let _d = null, _e = null; try { _d = await pb.collection("exercices").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", exerciceId);
 
@@ -701,8 +699,7 @@ export default function Admin() {
     try {
       if (isCurrentlyConsulted) {
         // Remove consultation record
-        await supabase
-          .from("exercice_consultations")
+        await pb.collection("exercice_consultations").getFullList({});
           .delete()
           .eq("exercice_id", exerciceId)
           .eq("user_id", user.id);
@@ -714,8 +711,7 @@ export default function Admin() {
         });
       } else {
         // Upsert consultation record
-        await supabase
-          .from("exercice_consultations")
+        await pb.collection("exercice_consultations").getFullList({});
           .upsert({
             exercice_id: exerciceId,
             user_id: user.id,
@@ -744,8 +740,8 @@ export default function Admin() {
     if (!newModelTitle.trim() || !newModelContent.trim() || !user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("certificat_models")
+      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           user_id: user.id,
           title: newModelTitle,
@@ -787,8 +783,8 @@ export default function Admin() {
     if (!editingModelId || !editModelTitle.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from("certificat_models")
+      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           title: editModelTitle,
           content: editModelContent,
@@ -822,8 +818,8 @@ export default function Admin() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce modèle ?")) return;
 
     try {
-      const { error } = await supabase
-        .from("certificat_models")
+      let _d = null, _e = null; try { _d = await pb.collection("certificat_models").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", modelId);
 

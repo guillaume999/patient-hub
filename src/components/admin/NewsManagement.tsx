@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,8 +89,8 @@ export function NewsManagement() {
 
   const fetchNews = async () => {
     try {
-      const { data, error } = await supabase
-        .from("news")
+      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -115,8 +115,8 @@ export function NewsManagement() {
     if (!categoryToUse) return;
 
     try {
-      const { data, error } = await supabase
-        .from("news")
+      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .insert({
           title: newTitle,
           description: newDescription,
@@ -184,8 +184,8 @@ export function NewsManagement() {
     if (!categoryToUse) return;
 
     try {
-      const { error } = await supabase
-        .from("news")
+      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .update({
           title: editTitle,
           description: editDescription,
@@ -217,8 +217,8 @@ export function NewsManagement() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette actualité ?")) return;
 
     try {
-      const { error } = await supabase
-        .from("news")
+      let _d = null, _e = null; try { _d = await pb.collection("news").getFullList({}); } catch(e: any) { _e = e; }
+              const data = _d; const error = _e;
         .delete()
         .eq("id", id);
 
